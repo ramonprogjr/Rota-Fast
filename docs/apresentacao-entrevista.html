@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rota Food — apresentação</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #14110f;
+      --surface: #241c18;
+      --surface-high: #2f241f;
+      --accent: #e53935;
+      --accent-soft: #ff8a80;
+      --cream: #f5e6c8;
+      --muted: #b8a99a;
+      --success: #66bb6a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--cream); font-family: "DM Sans", sans-serif; }
+    .deck { height: 100%; overflow: hidden; }
+    .slide {
+      display: none;
+      height: 100%;
+      padding: 6vh 8vw 10vh;
+      flex-direction: column;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse at 80% -10%, rgba(229, 57, 53, 0.18), transparent 50%),
+        radial-gradient(ellipse at 0% 100%, rgba(245, 230, 200, 0.06), transparent 45%),
+        var(--bg);
+    }
+    .slide.active { display: flex; }
+    .kicker {
+      color: var(--accent-soft);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 1.1;
+      font-weight: 600;
+      max-width: 18ch;
+    }
+    h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+      line-height: 1.15;
+      margin-bottom: 1.6rem;
+      max-width: 22ch;
+    }
+    .lede { font-size: clamp(1.05rem, 2vw, 1.35rem); color: var(--muted); max-width: 42rem; margin-top: 1.4rem; line-height: 1.45; }
+    ul { list-style: none; max-width: 44rem; }
+    ul li {
+      position: relative;
+      padding-left: 1.4rem;
+      margin: 0.7rem 0;
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+      line-height: 1.4;
+    }
+    ul li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 0.4rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(245, 230, 200, 0.08);
+      border-radius: 14px;
+      padding: 1.15rem 1.25rem;
+    }
+    .card strong { display: block; color: var(--cream); margin-bottom: 0.35rem; font-size: 1.05rem; }
+    .card span { color: var(--muted); font-size: 0.95rem; line-height: 1.4; }
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .chip {
+      background: var(--surface-high);
+      border-radius: 999px;
+      padding: 0.55rem 0.95rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .arrow { color: var(--accent-soft); font-weight: 700; }
+    .arch {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      font-size: clamp(0.78rem, 1.4vw, 0.95rem);
+      line-height: 1.45;
+      color: var(--muted);
+      white-space: pre;
+      overflow-x: auto;
+      max-width: 52rem;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 56rem;
+      font-size: clamp(0.92rem, 1.5vw, 1.1rem);
+    }
+    th, td {
+      text-align: left;
+      padding: 0.7rem 0.85rem;
+      border-bottom: 1px solid rgba(245, 230, 200, 0.12);
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      background: linear-gradient(transparent, var(--bg) 40%);
+    }
+    .footer button {
+      background: var(--surface-high);
+      color: var(--cream);
+      border: 0;
+      border-radius: 8px;
+      padding: 0.35rem 0.7rem;
+      cursor: pointer;
+      font: inherit;
+    }
+    .notes {
+      display: none;
+      position: fixed;
+      right: 1rem;
+      bottom: 3.2rem;
+      width: min(28rem, 40vw);
+      max-height: 40vh;
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid rgba(245, 230, 200, 0.15);
+      border-radius: 12px;
+      padding: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: var(--muted);
+      z-index: 2;
+    }
+    .notes.visible { display: block; }
+    .notes h3 { color: var(--cream); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .tag { display: inline-block; background: var(--accent); color: #fff; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem; }
+    @media print {
+      html, body, .deck { height: auto; overflow: visible; background: var(--bg); }
+      .footer, .notes { display: none !important; }
+      .slide {
+        display: flex !important;
+        height: 100vh;
+        page-break-after: always;
+        break-after: page;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <section class="slide active" data-notes="15s. Diga seu nome, a vaga, e a frase de uma linha. Não explique features ainda.">
+      <p class="kicker">Projeto pessoal · v1.1.2</p>
+      <h1>Rota Food</h1>
+      <p class="lede">Planejador de turno para entregadores de comida: captura o pedido, sugere a sequência e fecha o dia com km e custo — sem conta, sem servidor e sem substituir o Google Maps.</p>
+    </section>
+
+    <section class="slide" data-notes="1 min. Conte o AS-IS como um dia de trabalho, não como lista de bugs. Você observou o processo do motoboy.">
+      <p class="kicker">01 · Processo</p>
+      <h2>O turno, antes do app</h2>
+      <ul>
+        <li>Pedidos chegam no WhatsApp ou em comanda impressa</li>
+        <li>Endereços são copiados um a um, na mão</li>
+        <li>A ordem das paradas é “no olho”</li>
+        <li>O Maps navega; o planejamento fica na cabeça</li>
+        <li>Km, gasolina e óleo não viram número no fim do dia</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="45s. Deixe claro o público: não é o app do iFood. É o entregador que já tem a lista.">
+      <p class="kicker">02 · Problema</p>
+      <h2>Para quem, e qual a dor</h2>
+      <div class="grid">
+        <div class="card"><strong>Quem</strong><span>Entregador de pizzaria, restaurante ou dark kitchen — o turno com várias paradas, não o marketplace.</span></div>
+        <div class="card"><strong>Dor</strong><span>Trabalho repetitivo de copiar, localizar e escolher a próxima entrega, sem visibilidade de custo.</span></div>
+        <div class="card"><strong>Não é</strong><span>Concorrente do iFood. O app automatiza o turno de quem já tem a lista de pedidos.</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-notes="1 min. Visão: gratuito, Android, offline-first, privacidade. O que o produto recusa é tão importante quanto o que faz.">
+      <p class="kicker">03 · Visão</p>
+      <h2>O que o produto se propõe a ser</h2>
+      <ul>
+        <li>Android, gratuito, sem anúncio e sem assinatura</li>
+        <li>Offline-first: a lista vive no celular (SQLite)</li>
+        <li>Privacidade primeiro: cliente e telefone não sobem para um servidor meu</li>
+        <li>Estimativa honesta: linha reta no app; rua e trânsito no Maps</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="1,5 min. Este é o slide de automação. Percorra o pipeline como um fluxo AS-IS → TO-BE. Humano só no pino.">
+      <p class="kicker">04 · Automação</p>
+      <h2>O fluxo que o app executa</h2>
+      <div class="pipeline">
+        <span class="chip">WhatsApp / OCR</span><span class="arrow">→</span>
+        <span class="chip">Parser</span><span class="arrow">→</span>
+        <span class="chip">Nominatim</span><span class="arrow">→</span>
+        <span class="chip">Confirma no mapa</span><span class="arrow">→</span>
+        <span class="chip">Sequência</span><span class="arrow">→</span>
+        <span class="chip">Google Maps</span><span class="arrow">→</span>
+        <span class="chip">Km e custo</span>
+      </div>
+      <ul>
+        <li>Cola vários endereços ou fotografa até 5 comandas (OCR no aparelho)</li>
+        <li>Até 5 candidatos no OpenStreetMap; a pessoa confirma ou arrasta o pino</li>
+        <li>Vizinho mais próximo + prioridade; Navegar abre o Maps com o texto do endereço</li>
+        <li>Turno no GPS: km, gasolina estimada, óleo a cada 1000 km, relatório no WhatsApp</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="45s. Princípio sênior: automatizar o repetitivo, humano no ponto de risco. Compor, não reinventar.">
+      <p class="kicker">05 · Decisão de produto</p>
+      <h2>Onde automatizar e onde não</h2>
+      <div class="grid">
+        <div class="card"><strong>Máquina</strong><span>Parsear texto, geocodificar, ordenar paradas, somar km e custo.</span></div>
+        <div class="card"><strong>Humano</strong><span>Confirmar o pino. Configurar a rota parado. Não mexer no app em movimento.</span></div>
+        <div class="card"><strong>Sistemas existentes</strong><span>Maps navega. WhatsApp recebe o relatório. O app não tenta ser GPS de rua.</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-notes="1,5 min. Cite as camadas sem ler o diagrama palavra por palavra. Feche com: sem backend próprio.">
+      <p class="kicker">06 · Tecnologia</p>
+      <h2>Arquitetura offline-first</h2>
+      <pre class="arch">UI (telas / Provider)
+   → repositórios → SQLite
+   → Nominatim (1 req/s + cache)
+   → RouteOptimizer (Haversine + NN)
+   → Maps / WhatsApp / discador
+   → GPS do turno</pre>
+      <p class="lede" style="margin-top:1.2rem">Flutter · Dart · Android APK · Provider · sqflite · ML Kit OCR · flutter_map · geolocator · url_launcher. Sem conta e sem servidor próprio.</p>
+    </section>
+
+    <section class="slide" data-notes="1 min. Trade-offs de propósito. Isso demonstra senioridade em automação: heurística explicável, custo zero, limite honesto.">
+      <p class="kicker">07 · Escolhas</p>
+      <h2>Por que essas tecnologias</h2>
+      <table>
+        <thead>
+          <tr><th>Escolha</th><th>Motivo</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Nominatim, sem chave Google</td><td>Custo zero no MVP; cache só depois da confirmação</td></tr>
+          <tr><td>OCR on-device (ML Kit)</td><td>Comanda não sobe para a nuvem</td></tr>
+          <tr><td>Vizinho mais próximo + peso</td><td>Rápido, explicável; urgente 0,4 / alta 0,7 / normal 1,0</td></tr>
+          <tr><td>Handoff para o Maps</td><td>Rua e trânsito já estão resolvidos em outro sistema</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide" data-notes="45s. O que já está no APK. Números reais: 28 km/h, 5 comandas, ~1 req/s, óleo 1000 km.">
+      <p class="kicker">08 · Agora</p>
+      <h2>O que já está no aparelho</h2>
+      <ul>
+        <li>Cadastro, lote de endereços, OCR, confirmação no mapa</li>
+        <li>Rota sugerida, marcar entregue, recalcular o restante</li>
+        <li>Turno com GPS, relatório do dia, histórico só no celular</li>
+        <li>Estimativa a 28 km/h em linha reta — e isso está escrito no produto</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="30s. Roadmap curto. Convide perguntas. Se pedirem demo, use o roteiro de 60s no Markdown.">
+      <p class="kicker">09 · Depois</p>
+      <h2>Para onde iria, com critério</h2>
+      <ul>
+        <li>Ruas reais (OSRM) em vez de linha reta — quando a estimativa deixar de ser honesta o bastante</li>
+        <li>OCR e parser mais tolerantes a mensagem de WhatsApp</li>
+        <li>Nuvem só se o usuário pedir sync; não por padrão</li>
+      </ul>
+      <p class="lede">Obrigado. Posso mostrar o fluxo no celular ou ir direto nas escolhas de automação.</p>
+    </section>
+  </div>
+
+  <aside class="notes" id="notes">
+    <h3>Notas</h3>
+    <p id="notesText"></p>
+  </aside>
+
+  <div class="footer">
+    <span>Rota Food · entrevista</span>
+    <span>
+      <button type="button" id="prev">←</button>
+      <span id="counter"></span>
+      <button type="button" id="next">→</button>
+      &nbsp; N notas · F tela cheia
+    </span>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    const notes = document.getElementById("notes");
+    const notesText = document.getElementById("notesText");
+    const counter = document.getElementById("counter");
+    let i = 0;
+
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+      counter.textContent = (i + 1) + " / " + slides.length;
+      notesText.textContent = slides[i].dataset.notes || "";
+    }
+
+    document.getElementById("prev").onclick = () => show(i - 1);
+    document.getElementById("next").onclick = () => show(i + 1);
+
+    document.addEventListener("keydown", (e) => {
+      if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) {
+        e.preventDefault();
+        show(i + 1);
+      } else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(e.key)) {
+        e.preventDefault();
+        show(i - 1);
+      } else if (e.key === "n" || e.key === "N") {
+        notes.classList.toggle("visible");
+      } else if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      } else if (e.key === "Home") {
+        show(0);
+      } else if (e.key === "End") {
+        show(slides.length - 1);
+      }
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

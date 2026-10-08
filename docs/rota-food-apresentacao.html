@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#171411" />
+  <title>Rota Food | Apresentação do produto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #171411;
+      --panel: #211d19;
+      --panel-raised: #2b2520;
+      --line: rgba(244, 233, 214, .12);
+      --paper: #f4ead9;
+      --muted: #b6aa99;
+      --red: #ed5548;
+      --red-soft: #ff9184;
+      --green: #84c896;
+      --yellow: #f2be69;
+      --blue: #9ac9d8;
+      font-family: "DM Sans", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--ink); color: var(--paper); }
+    button { color: inherit; font: inherit; }
+    .layout { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
+    .rail { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 26px 18px 18px; border-right: 1px solid var(--line); background: #14120f; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 30px; }
+    .brand img { width: 38px; height: 38px; border-radius: 10px; }
+    .brand-name { font-weight: 700; letter-spacing: 0; }
+    .brand-sub { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .rail-label, .eyebrow { color: var(--red-soft); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .rail-label { padding: 0 10px 12px; }
+    .chapters { display: grid; gap: 4px; }
+    .chapter { display: grid; grid-template-columns: 25px 1fr; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 7px; padding: 9px 10px; background: transparent; color: var(--muted); text-align: left; cursor: pointer; font-size: 12px; }
+    .chapter:hover, .chapter.active { background: var(--panel-raised); color: var(--paper); }
+    .chapter.active .chapter-number { color: var(--red-soft); }
+    .chapter-number { color: #81786e; font-size: 10px; font-variant-numeric: tabular-nums; }
+    .rail-bottom { margin-top: auto; padding: 15px 10px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .workspace { min-width: 0; display: flex; flex-direction: column; }
+    .topbar { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 34px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .topbar strong { color: var(--paper); font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px rgba(132, 200, 150, .45); }
+    .slides { position: relative; width: 100%; flex: 1; min-height: 0; }
+    .slide { display: none; min-height: calc(100vh - 132px); padding: clamp(32px, 5vw, 68px) clamp(25px, 6vw, 84px); animation: enter .28s ease both; }
+    .slide.active { display: flex; flex-direction: column; justify-content: center; }
+    @keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .slide-content { width: 100%; max-width: 1120px; margin: 0 auto; }
+    .eyebrow { margin: 0 0 16px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; letter-spacing: 0; }
+    h1 { max-width: 9ch; margin-bottom: 20px; font-size: clamp(54px, 7.2vw, 94px); line-height: .98; }
+    h2 { max-width: 18ch; margin-bottom: 20px; font-size: clamp(34px, 4.2vw, 56px); line-height: 1.06; }
+    h3 { margin-bottom: 8px; font-size: 14px; }
+    .lede { max-width: 560px; margin-bottom: 0; color: #d2c5b4; font-size: clamp(16px, 1.7vw, 20px); line-height: 1.6; }
+    .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, .82fr); align-items: center; gap: clamp(36px, 7vw, 100px); }
+    .hero .split { grid-template-columns: minmax(0, 1fr) 340px; }
+    .hero h1 span { color: var(--red-soft); }
+    .hero-note { display: flex; align-items: center; gap: 10px; margin-top: 28px; color: var(--muted); font-size: 12px; }
+    .hero-note::before { width: 32px; height: 1px; background: var(--red); content: ""; }
+    .section-head { max-width: 720px; margin-bottom: 30px; }
+    .section-head .lede { max-width: 650px; }
+    .columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .info { min-height: 150px; padding: 19px; border-top: 2px solid var(--red); background: var(--panel); }
+    .info:nth-child(2) { border-color: var(--yellow); }
+    .info:nth-child(3) { border-color: var(--green); }
+    .info p, .info li { margin-bottom: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .info .big { display: block; margin-bottom: 14px; color: var(--paper); font-family: Fraunces, Georgia, serif; font-size: 29px; }
+    .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 18px 0 22px; }
+    .flow span:not(.arrow) { padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--paper); font-size: 11px; }
+    .flow .arrow { color: var(--red-soft); }
+    .points { display: grid; gap: 13px; max-width: 650px; margin: 0; padding: 0; list-style: none; }
+    .points li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: #d2c5b4; font-size: 15px; line-height: 1.45; }
+    .points li::before { width: 7px; height: 7px; margin-top: 7px; border-radius: 50%; background: var(--red); content: ""; }
+    .screen-demo { width: min(100%, 330px); margin: 0 auto; }
+    .phone { overflow: hidden; border: 1px solid #554a3e; border-radius: 28px; padding: 8px; background: #090909; box-shadow: 0 26px 70px rgba(0, 0, 0, .45); }
+    .phone-screen { position: relative; height: 570px; overflow: hidden; border-radius: 21px; background: var(--ink); }
+    .statusbar { height: 27px; display: flex; justify-content: space-between; padding: 7px 15px 0; color: #a89d90; font-size: 9px; }
+    .appbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 9px; font-size: 15px; font-weight: 700; }
+    .appbar-title { display: flex; align-items: center; gap: 7px; }
+    .appbar-actions { display: flex; align-items: center; gap: 4px; }
+    .appbar button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--paper); cursor: pointer; font-size: 15px; }
+    .appbar button:hover { background: var(--panel-raised); }
+    .appbar small { color: var(--muted); font-size: 10px; font-weight: 500; }
+    .phone-body { height: calc(100% - 118px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 0 13px 18px; scrollbar-color: #75695b transparent; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+    .mini-banner { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; border: 1px solid rgba(237, 85, 72, .2); padding: 10px; background: #271c18; }
+    .mini-banner strong { display: block; font-size: 11px; }
+    .mini-banner span { color: var(--muted); font-size: 9px; }
+    .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+    .mini-stat { padding: 9px 7px; background: var(--panel); }
+    .mini-stat strong { display: block; font-size: 13px; }
+    .mini-stat span { color: var(--muted); font-size: 8px; }
+    .mini-action { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; margin-bottom: 6px; border: 0; border-radius: 7px; background: var(--red); color: white; font-size: 10px; font-weight: 700; cursor: pointer; }
+    .mini-action.secondary { border: 1px solid #62594f; background: var(--panel); color: var(--paper); }
+    .mini-action.danger { border: 1px solid rgba(255, 145, 132, .4); background: transparent; color: var(--red-soft); }
+    .mini-action:disabled { opacity: .5; cursor: not-allowed; }
+    .mini-section { margin: 13px 0 7px; font-size: 12px; font-weight: 700; }
+    .delivery { margin-bottom: 7px; padding: 10px; border: 1px solid rgba(244, 233, 214, .08); border-radius: 8px; background: var(--panel); }
+    .delivery-top { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; }
+    .num { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 50%; background: var(--red); font-size: 9px; }
+    .priority { margin-left: auto; color: var(--yellow); font-size: 8px; }
+    .delivery p { margin: 6px 0 0 26px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .mini-row { display: flex; gap: 6px; margin: 9px 0 0 26px; }
+    .delivery-controls { display: flex; gap: 6px; margin: 8px 0 0 26px; }
+    .delivery-controls button { flex: 1; min-height: 28px; border: 1px solid #51483f; border-radius: 5px; background: transparent; color: var(--paper); cursor: pointer; font-size: 8px; }
+    .delivery-controls button:hover { border-color: var(--green); }
+    .mini-pill { flex: 1; padding: 6px; border: 1px solid #51483f; border-radius: 5px; color: var(--paper); text-align: center; font-size: 8px; }
+    .phone-nav { position: absolute; right: 0; bottom: 0; left: 0; height: 33px; display: grid; place-items: center; border-top: 1px solid #29231e; background: #171411; }
+    .gesture-line { width: 78px; height: 3px; border-radius: 4px; background: #bdb5a9; }
+    .screen-caption { margin: 11px 0 0; color: var(--muted); text-align: center; font-size: 10px; }
+    .screen-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 11px; }
+    .screen-tab { border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; background: transparent; color: var(--muted); cursor: pointer; font-size: 9px; }
+    .screen-tab:hover, .screen-tab.active { border-color: var(--red-soft); color: var(--paper); }
+    .field { display: block; min-width: 0; margin-bottom: 8px; padding: 9px; border: 1px solid #473d34; border-radius: 6px; background: var(--panel); }
+    .field small { display: block; margin-bottom: 5px; color: var(--muted); font-size: 8px; }
+    .field span { font-size: 10px; }
+    .field input, .field select, .field textarea { width: 100%; border: 0; outline: 0; background: transparent; color: var(--paper); font: inherit; font-size: 10px; }
+    .field input::placeholder, .field textarea::placeholder { color: #8d8174; }
+    .field select option { background: var(--panel); color: var(--paper); }
+    .field textarea { min-height: 115px; resize: vertical; }
+    .form-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 8px; }
+    .inline-actions { display: flex; gap: 6px; }
+    .inline-actions > * { flex: 1; }
+    .status-note { margin: 8px 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .status-note.warning { color: var(--yellow); }
+    .status-note.success { color: var(--green); }
+    .oil-warning { margin: 8px 0; border-left: 2px solid var(--yellow); padding: 8px; background: rgba(242, 190, 105, .09); color: var(--yellow); font-size: 9px; line-height: 1.45; }
+    .icon-action { border: 0; background: transparent; color: var(--red-soft); cursor: pointer; font-size: 14px; }
+    .route-stop { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 7px; }
+    .route-stop .stop-copy { min-width: 0; font-size: 9px; }
+    .route-stop .stop-copy small { display: block; overflow: hidden; margin-top: 3px; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+    .route-stop select { max-width: 75px; border: 1px solid #51483f; border-radius: 4px; background: var(--panel); color: var(--paper); font-size: 8px; }
+    .demo-notice { color: var(--muted); text-align: center; font-size: 9px; }
+    .osm-credit { margin: 8px 0; color: var(--muted); font-size: 8px; line-height: 1.45; }
+    .osm-credit a { color: var(--blue); }
+    .map-art { position: relative; height: 290px; overflow: hidden; border: 1px solid #4b453c; border-radius: 8px; background-color: #282b26; background-image: linear-gradient(32deg, transparent 46%, #555449 47%, #555449 49%, transparent 50%), linear-gradient(112deg, transparent 38%, #49483e 39%, #49483e 41%, transparent 42%), linear-gradient(0deg, transparent 68%, #46483d 69%, #46483d 71%, transparent 72%), linear-gradient(72deg, transparent 17%, #373a33 18%, #373a33 20%, transparent 21%); background-size: 160px 140px, 180px 170px, 140px 125px, 210px 190px; }
+    .map-road { position: absolute; height: 5px; width: 150%; background: #81745d; transform: rotate(-28deg); opacity: .85; }
+    .map-road.one { top: 44%; left: -20%; }
+    .map-road.two { top: 69%; left: -10%; transform: rotate(24deg); }
+    .map-pin { position: absolute; top: 39%; left: 54%; width: 27px; height: 27px; display: grid; place-items: center; border: 3px solid white; border-radius: 50% 50% 50% 4px; background: var(--red); color: white; font-size: 11px; transform: rotate(-45deg); box-shadow: 0 3px 12px #111; }
+    .map-pin span { transform: rotate(45deg); }
+    .map-label { position: absolute; top: 52%; left: 57%; padding: 4px 6px; border-radius: 3px; background: #171411e8; font-size: 8px; }
+    .route-list { display: grid; gap: 8px; margin-top: 11px; }
+    .route-step { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 7px; color: var(--paper); font-size: 9px; }
+    .route-step em { color: var(--muted); font-size: 8px; font-style: normal; }
+    .report-title { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; font-size: 11px; font-weight: 700; }
+    .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .report-metric { padding: 10px; background: var(--panel); }
+    .report-metric strong { display: block; margin-top: 4px; font-size: 16px; }
+    .report-metric span { color: var(--muted); font-size: 8px; }
+    .timeline { position: relative; display: grid; gap: 11px; margin: 13px 0 0 5px; padding-left: 16px; }
+    .timeline::before { position: absolute; top: 4px; bottom: 4px; left: 3px; width: 1px; background: #5d554b; content: ""; }
+    .timeline-item { position: relative; color: var(--muted); font-size: 8px; }
+    .timeline-item::before { position: absolute; top: 1px; left: -16px; width: 7px; height: 7px; border: 2px solid var(--green); border-radius: 50%; background: var(--ink); content: ""; }
+    .notes { display: none; max-width: 700px; margin: 25px auto 0; border-left: 2px solid var(--red); padding: 11px 14px; background: var(--panel); color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .notes.visible { display: block; }
+    .notes strong { display: block; margin-bottom: 4px; color: var(--red-soft); font-size: 10px; text-transform: uppercase; }
+    .footer { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 34px; border-top: 1px solid var(--line); background: #14120f; }
+    .progress { width: min(160px, 22vw); height: 3px; overflow: hidden; background: #403930; }
+    .progress span { display: block; width: 10%; height: 100%; background: var(--red); transition: width .2s ease; }
+    .foot-left, .foot-right { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 11px; }
+    .controls { display: flex; align-items: center; gap: 6px; }
+    .control { min-width: 34px; height: 34px; display: inline-grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--paper); cursor: pointer; }
+    .control:hover { border-color: var(--red-soft); background: var(--panel); }
+    .control.text { width: auto; padding: 0 10px; font-size: 10px; }
+    .counter { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+    .mobile-brand, .mobile-chapters { display: none; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 72px minmax(0, 1fr); }
+      .rail { align-items: center; padding-inline: 9px; }
+      .brand { padding: 0 0 25px; }
+      .brand-copy, .rail-label, .chapter span:last-child, .rail-bottom { display: none; }
+      .chapter { width: 42px; height: 42px; display: grid; grid-template-columns: 1fr; place-items: center; padding: 0; }
+      .chapter-number { font-size: 11px; }
+      .topbar, .footer { padding-inline: 20px; }
+      .slide { padding-inline: 34px; }
+      .split, .hero .split { grid-template-columns: minmax(0, 1fr) minmax(230px, .8fr); gap: 25px; }
+      .phone-screen { height: 510px; }
+    }
+    @media (max-width: 650px) {
+      .layout { display: block; min-height: 100svh; }
+      .rail { display: none; }
+      .workspace { min-height: 100svh; }
+      .topbar { height: 54px; padding-inline: 16px; font-size: 10px; }
+      .topbar-right { gap: 7px; }
+      .mobile-brand { display: inline; color: var(--paper); font-weight: 700; }
+      .desktop-crumb { display: none; }
+      .mobile-chapters { display: flex; gap: 4px; overflow-x: auto; padding: 8px 14px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+      .mobile-chapters::-webkit-scrollbar { display: none; }
+      .mobile-chapters .chapter { flex: 0 0 auto; width: 34px; height: 32px; display: grid; }
+      .slide { min-height: auto; padding: 29px 20px 32px; }
+      .slide.active { justify-content: flex-start; }
+      .split, .hero .split { grid-template-columns: 1fr; gap: 27px; }
+      .hero .screen-demo { width: min(100%, 310px); }
+      h1 { font-size: 58px; }
+      h2 { font-size: 37px; }
+      .lede { font-size: 15px; }
+      .columns { grid-template-columns: 1fr; gap: 8px; }
+      .info { min-height: 0; padding: 14px; }
+      .info .big { margin-bottom: 7px; font-size: 23px; }
+      .info p { font-size: 12px; }
+      .phone-screen { height: 535px; }
+      .footer { position: sticky; bottom: 0; z-index: 3; min-height: 60px; padding: 8px 13px; }
+      .foot-left { gap: 7px; }
+      .progress { width: 38px; }
+      .foot-right { gap: 5px; }
+      .control.text { padding: 0 7px; }
+      .notes { margin-top: 17px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="rail" aria-label="Navegação dos slides">
+      <div class="brand">
+        <img src="../assets/app_icon_rf.png" alt="" />
+        <div class="brand-copy"><div class="brand-name">Rota Food</div><div class="brand-sub">Produto · Android</div></div>
+      </div>
+      <div class="rail-label">Apresentação</div>
+      <nav class="chapters" id="chapters"></nav>
+      <div class="rail-bottom">Projeto pessoal<br />Versão 1.1.2 · 2026</div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar">
+        <div><span class="mobile-brand">Rota Food</span><span class="desktop-crumb"><strong>Portfólio</strong> / Visão de produto</span></div>
+        <div class="topbar-right"><span class="live-dot"></span><span>Apresentação interativa</span><button class="control text" id="fullscreen" type="button" aria-label="Ativar tela cheia">Tela cheia</button></div>
+      </header>
+      <nav class="mobile-chapters" id="mobile-chapters" aria-label="Slides"></nav>
+      <div class="slides" id="slides">
+        <section class="slide hero active" data-title="Visão geral" data-notes="Abra com seu nome e a vaga. Em uma frase: o Rota Food organiza o turno de quem já tem os pedidos. O celular ao lado é uma demonstração visual do app, não uma captura de tela.">
+          <div class="slide-content split">
+            <div><p class="eyebrow">Projeto pessoal · v1.1.2</p><h1>Rota <span>Food</span></h1><p class="lede">O turno de entregas, organizado do primeiro endereço ao fechamento do dia.</p><p class="hero-note">Planejamento no app. Navegação no Google Maps.</p></div>
+            <div class="screen-demo" data-demo="home"></div>
+          </div>
+        </section>
+        <section class="slide" data-title="O processo" data-notes="Descreva o dia de trabalho antes do app. O ponto não é culpar o processo manual: é mostrar o trabalho repetitivo que se acumula no turno.">
+          <div class="slide-content"><div class="section-head"><p class="eyebrow">01 · Processo</p><h2>O turno, antes do app</h2><p class="lede">Pedidos chegam por canais diferentes. O planejamento acaba espalhado entre conversa, papel e memória.</p></div><div class="columns"><article class="info"><span class="big">01</span><h3>Receber</h3><p>Endereço no WhatsApp ou escrito numa comanda.</p></article><article class="info"><span class="big">02</span><h3>Reorganizar</h3><p>Copiar dados e decidir a ordem das paradas “no olho”.</p></article><article class="info"><span class="big">03</span><h3>Fechar o dia</h3><p>Km e gastos ficam difíceis de acompanhar turno a turno.</p></article></div></div>
+        </section>
+        <section class="slide" data-title="Problema e usuário" data-notes="Deixe claro quem usa: o entregador que já tem os pedidos, não o cliente que está comprando comida. Ainda não apresente métrica de impacto sem um piloto medido.">
+          <div class="slide-content split"><div><p class="eyebrow">02 · Problema</p><h2>Uma lista de pedidos ainda não é um turno organizado</h2><p class="lede">O Rota Food é pensado para entregadores de pizzarias, restaurantes e cozinhas pequenas que fazem várias paradas no mesmo turno.</p><ul class="points" style="margin-top: 24px"><li>Menos repetição ao cadastrar endereços.</li><li>Um ponto de validação antes de sair para a rua.</li><li>Uma sequência simples para orientar a próxima entrega.</li></ul></div><div class="screen-demo" data-demo="home"></div></div>
+        </section>
+        <section class="slide" data-title="Visão de produto" data-notes="Explique os limites como escolhas conscientes: lista e dados locais; busca de endereço depende de internet; o Google Maps continua responsável pelas ruas e pelo trânsito.">
+          <div class="slide-content"><div class="section-head"><p class="eyebrow">03 · Visão de produto</p><h2>Útil no turno. Honesto sobre seus limites.</h2></div><div class="columns"><article class="info"><span class="big">No bolso</span><h3>Android, sem conta</h3><p>Sem anúncios, assinatura ou servidor próprio. Entregas salvas localmente no aparelho.</p></article><article class="info"><span class="big">Offline-first</span><h3>O básico continua disponível</h3><p>Consultar, editar e concluir entregas já cadastradas não depende de localizar um endereço novo.</p></article><article class="info"><span class="big">Composto</span><h3>Não reinventa o Maps</h3><p>O app sugere a sequência. Ruas, trânsito e navegação ficam com o Google Maps.</p></article></div></div>
+        </section>
+        <section class="slide" data-title="Entrada de pedidos" data-notes="Mostre que há mais de uma entrada. No OCR, o texto reconhecido pode errar, por isso a pessoa revisa antes de localizar e confirmar.">
+          <div class="slide-content split"><div><p class="eyebrow">04 · Entrada</p><h2>Do texto ou da comanda para a lista</h2><p class="lede">A pessoa pode cadastrar uma entrega, colar vários endereços ou fotografar comandas. A leitura por OCR acontece no aparelho e permite revisão.</p><div class="flow"><span>WhatsApp</span><span class="arrow">→</span><span>Parser</span><span class="arrow">·</span><span>Foto</span><span class="arrow">→</span><span>OCR local</span></div><ul class="points"><li>Importação em lote para reduzir digitação.</li><li>Campos reconhecidos podem ser corrigidos antes de salvar.</li><li>Até cinco fotos de comanda por fluxo.</li></ul></div><div class="screen-demo" data-demo="paste"></div></div>
+        </section>
+        <section class="slide" data-title="Localização" data-notes="O endereço vai ao Nominatim para geocodificação. A pessoa escolhe ou ajusta o pino; o ponto só é armazenado como confirmado depois dessa validação. Não diga que os dados nunca saem do aparelho: o texto do endereço é enviado ao serviço de busca.">
+          <div class="slide-content split"><div><p class="eyebrow">05 · Validação humana</p><h2>Automatizar a busca. Confirmar o ponto.</h2><p class="lede">O serviço sugere candidatos para o endereço. Antes de usá-lo na rota, a pessoa confirma o local ou ajusta o pino no mapa.</p><ul class="points" style="margin-top: 22px"><li>Até cinco resultados do OpenStreetMap.</li><li>O cache guarda o ponto depois da confirmação.</li><li>O destino aberto no Maps usa o endereço escrito.</li></ul></div><div class="screen-demo" data-demo="map"></div></div>
+        </section>
+        <section class="slide" data-title="Organizar a rota" data-notes="Fale da regra em termos simples: seleciona repetidamente a próxima parada próxima e considera a prioridade. É uma heurística de vizinho mais próximo, não uma solução ótima para o problema do caixeiro-viajante. Distância e tempo no app são estimativas em linha reta.">
+          <div class="slide-content split"><div><p class="eyebrow">06 · Decisão</p><h2>Uma sequência rápida e explicável</h2><p class="lede">A rota parte da pizzaria ou da posição GPS e usa distância em linha reta com um peso de prioridade.</p><div class="columns" style="grid-template-columns: repeat(3, 1fr); margin-top: 21px"><article class="info" style="min-height: 0; padding: 13px"><span class="big" style="font-size: 21px">0,4</span><p>Urgente</p></article><article class="info" style="min-height: 0; padding: 13px"><span class="big" style="font-size: 21px">0,7</span><p>Alta</p></article><article class="info" style="min-height: 0; padding: 13px"><span class="big" style="font-size: 21px">1,0</span><p>Normal</p></article></div><p class="lede" style="margin-top: 15px; font-size: 13px">Estimativa de tempo: distância em linha reta a 28 km/h. Navegação real: Google Maps.</p></div><div class="screen-demo" data-demo="route"></div></div>
+        </section>
+        <section class="slide" data-title="Turno e relatório" data-notes="Diferencie dado real de estimativa: o rastreamento GPS registra o percurso do turno; combustível é estimado pelas configurações da moto e preço informado. Evite apresentar valores demonstrativos como resultados do projeto.">
+          <div class="slide-content split"><div><p class="eyebrow">07 · Acompanhamento</p><h2>O turno também deixa um histórico</h2><p class="lede">Ao iniciar o turno, o app pode acompanhar a posição e registrar quilômetros. No fechamento, reúne os dados em um relatório local.</p><ul class="points" style="margin-top: 22px"><li>Resumo de entregas e km registrados por GPS.</li><li>Estimativa de gasto com gasolina conforme as configurações.</li><li>Histórico no aparelho e lembrete de troca de óleo.</li></ul></div><div class="screen-demo" data-demo="report"></div></div>
+        </section>
+        <section class="slide" data-title="Tecnologia" data-notes="Faça a ponte entre escolhas e necessidades do produto. Destaque a stack real: Flutter/Dart, Provider, SQLite, geolocalização, OCR e integração com Maps. Explique que a arquitetura foi pensada para manter o app funcional, local e simples, sem backend próprio.">
+          <div class="slide-content"><div class="section-head"><p class="eyebrow">08 · Implementação</p><h2>Uma arquitetura enxuta, pensada para uso real</h2><p class="lede">A solução foi construída em Flutter com Dart, organizando a lógica em camadas para separar UI, regras de negócio, persistência e integrações com serviços externos.</p></div><div class="flow"><span>Telas</span><span class="arrow">→</span><span>Provider</span><span class="arrow">→</span><span>Repositórios</span><span class="arrow">→</span><span>SQLite / serviços</span></div><div class="columns"><article class="info"><span class="big">Frontend</span><h3>Flutter · Dart</h3><p>Aplicativo Android com interface responsiva e foco em operação de entregas no dia a dia.</p></article><article class="info"><span class="big">Estado</span><h3>Provider</h3><p>Gerencia a experiência do turno, entregas pendentes, histórico e alterações de configuração.</p></article><article class="info"><span class="big">Persistência</span><h3>SQLite · sqflite</h3><p>Armazena entregas, endereço confirmado, relatório do turno e ajustes do estabelecimento no aparelho.</p></article></div><div class="columns" style="margin-top: 18px"><article class="info"><span class="big">Localização</span><h3>Geolocator · Maps</h3><p>Usa GPS para acompanhar o turno e abre a navegação no Maps quando o entregador precisa seguir a rota.</p></article><article class="info"><span class="big">Busca e endereço</span><h3>Nominatim · geocoding</h3><p>Busca candidatos de endereço e confirma o ponto antes de usar em rota, reduzindo erro de local e retrabalho.</p></article><article class="info"><span class="big">OCR e entrada</span><h3>ML Kit + parser</h3><p>Reconhece comandas, ajuda na leitura de textos e permite importar pedidos por foto ou texto colado.</p></article></div><div class="columns" style="margin-top: 18px"><article class="info"><span class="big">Rota</span><h3>RouteOptimizer</h3><p>Calcula ordem com base em distância, prioridade e proximidade, aplicando uma heurística explicável e simples.</p></article><article class="info"><span class="big">Relatório</span><h3>GPS + histórico local</h3><p>Registra o turno, estima km, custos e mantém um histórico útil para controlar o dia de trabalho.</p></article><article class="info"><span class="big">Arquitetura</span><h3>Sem backend próprio</h3><p>O produto foi pensado para ser funcional, leve e realista: local no celular, com integração em mapas e serviços externos quando necessário.</p></article></div><pre class="arch" style="margin-top: 18px">UI (Flutter / Dart)
+  → Provider / estado da aplicação
+  → Repositórios e serviços de negócio
+  → SQLite para persistência local
+  → Geolocalização, OCR, geocodificação e roteamento
+  → Google Maps para navegação real / handoff</pre><p class="lede" style="margin-top: 18px; font-size: 13px; color: var(--muted)">Escolha estratégica: automatizar o repetitivo, manter a decisão humana no ponto crítico e usar sistemas já bons no mercado como Maps e GPS, em vez de reinventar toda a infraestrutura.</p></div>
+        </section>
+        <section class="slide" data-title="Trade-offs e próximos passos" data-notes="Feche com priorização orientada a evidências. Para validar valor, proponha medir tempo de preparação, correções de endereço e quilômetros do turno em um piloto, comparando turnos parecidos.">
+          <div class="slide-content"><div class="section-head"><p class="eyebrow">09 · Trade-offs e próximos passos</p><h2>Melhorar com evidência, não por suposição</h2><p class="lede">A primeira validação de produto seria acompanhar turnos reais e entender onde a estimativa atual deixa de ser suficiente.</p></div><div class="columns"><article class="info"><span class="big">Medir</span><h3>Tempo e retrabalho</h3><p>Tempo para preparar o turno, correções de endereço e diferenças entre previsão e percurso real.</p></article><article class="info"><span class="big">Evoluir</span><h3>Distância por ruas</h3><p>Avaliar OSRM ou outra matriz de rotas se a estimativa em linha reta for insuficiente no uso real.</p></article><article class="info"><span class="big">Preservar</span><h3>Privacidade por padrão</h3><p>Sincronização em nuvem somente se houver necessidade clara entre mais de um aparelho.</p></article></div><p class="lede" style="margin-top: 28px">Obrigado. Posso mostrar o fluxo do app ou aprofundar as decisões técnicas.</p></div>
+        </section>
+      </div>
+      <aside class="notes" id="notes" aria-live="polite"><strong>Nota para apresentação</strong><span id="notes-text"></span></aside>
+      <footer class="footer"><div class="foot-left"><div class="progress" aria-hidden="true"><span id="progress"></span></div><span>Rota Food</span></div><div class="foot-right"><button class="control text" id="toggle-notes" type="button">Notas <span aria-hidden="true">N</span></button><div class="controls"><button class="control" id="prev" type="button" aria-label="Slide anterior">‹</button><span class="counter" id="counter" aria-live="polite"></span><button class="control" id="next" type="button" aria-label="Próximo slide">›</button></div></div></footer>
+    </main>
+  </div>
+  <script>
+    const demoScreens = {
+      home: { title: 'Rota Food', body: '<div class="mini-banner"><div><strong>Pizzaria Sabor da Vila</strong><span>São Bernardo do Campo</span></div><span>ABERTO</span></div><div class="mini-stats"><div class="mini-stat"><strong>5</strong><span>pendentes</span></div><div class="mini-stat"><strong>8,4 km</strong><span>estimados</span></div><div class="mini-stat"><strong>32 min</strong><span>de rota</span></div></div><div class="mini-action">▶ &nbsp; Encerrar turno</div><div class="mini-action secondary">⌁ &nbsp; Organizar rota</div><div class="mini-action secondary">▤ &nbsp; Colar endereços</div><div class="mini-action secondary">▧ &nbsp; Fotografar comandas</div><div class="mini-section">Entregas do turno</div><div class="delivery"><div class="delivery-top"><span class="num">1</span> Ana Souza <span class="priority">URGENTE</span></div><p>Rua das Flores, 120 · Centro</p><div class="mini-row"><span class="mini-pill">Navegar</span><span class="mini-pill">Entregue</span></div></div><div class="delivery"><div class="delivery-top"><span class="num">2</span> Marcos Lima</div><p>Av. Kennedy, 456 · Jardim do Mar</p></div>' },
+      add: { title: 'Nova entrega', body: '<div class="field"><small>CLIENTE</small><span>Marcos Lima</span></div><div class="field"><small>PEDIDO</small><span>1024</span></div><div class="field"><small>TELEFONE / WHATSAPP</small><span>(11) 99999-0000</span></div><div class="field"><small>ENDEREÇO</small><span>Av. Kennedy, 456</span></div><div class="field"><small>BAIRRO · CIDADE</small><span>Jardim do Mar · São Bernardo</span></div><div class="field"><small>VALOR DA ENTREGA</small><span>R$ 8,00</span></div><div class="mini-section">Prioridade</div><div class="mini-row" style="margin-left:0"><span class="mini-pill">Normal</span><span class="mini-pill">Alta</span><span class="mini-pill" style="border-color:var(--red);color:var(--red-soft)">Urgente</span></div><div class="mini-action secondary" style="margin-top:12px">⌖ &nbsp; Localizar e confirmar no mapa</div><div class="mini-action" style="margin-top:12px">✓ &nbsp; Salvar entrega</div>' },
+      paste: { title: 'Colar endereços', body: '<div class="mini-banner"><div><strong>Importação em lote</strong><span>Cole uma entrega por linha</span></div><span>↳</span></div><div class="field" style="height:210px"><small>TEXTO DO WHATSAPP</small><span>João — Rua Marechal Deodoro, 1500, Centro<br><br>Maria — Av. Kennedy, 456, Rudge Ramos<br><br>Lucas — Rua Jurubatuba, 88</span></div><div class="mini-section">3 endereços reconhecidos</div><div class="delivery"><div class="delivery-top">João</div><p>Rua Marechal Deodoro, 1500, Centro</p></div><div class="delivery"><div class="delivery-top">Maria</div><p>Av. Kennedy, 456, Rudge Ramos</p></div><div class="mini-action">＋ &nbsp; Salvar entregas</div><p style="color:var(--muted);font-size:8px;text-align:center">OCR disponível para fotografar comandas</p>' },
+      scan: { title: 'Fotografar comandas', body: '<div class="mini-banner"><div><strong>Leitura no aparelho</strong><span>Até 5 fotos por vez</span></div><span>▧</span></div><div class="map-art" style="height:190px;display:grid;place-items:center"><div style="width:104px;height:132px;padding:12px;background:#f1e7d4;color:#30271e;transform:rotate(-4deg);box-shadow:0 7px 20px #111"><b style="font-size:8px">PEDIDO #1024</b><hr style="border-color:#a89d90"><span style="font-size:8px">Marcos Lima</span><p style="font-size:8px">Av. Kennedy, 456<br>Rudge Ramos</p></div></div><div class="field" style="margin-top:10px"><small>CLIENTE · REVISAR</small><span>Marcos Lima</span></div><div class="field"><small>ENDEREÇO · REVISAR</small><span>Av. Kennedy, 456, Rudge Ramos</span></div><div class="mini-action secondary">＋ &nbsp; Tirar foto (1/5)</div><div class="mini-action">✓ &nbsp; Salvar e confirmar no mapa</div>' },
+      map: { title: 'Confirmar local', body: '<div class="field"><small>ENDEREÇO</small><span>Av. Kennedy, 456 · Jardim do Mar</span></div><div class="map-art"><span class="map-road one"></span><span class="map-road two"></span><span class="map-pin"><span>1</span></span><span class="map-label">Av. Kennedy, 456</span></div><div class="mini-section">Pontos encontrados</div><div class="mini-row" style="margin:0"><span class="mini-pill" style="border-color:var(--red-soft)">● Opção 1</span><span class="mini-pill">Opção 2</span></div><div class="mini-action" style="margin-top:10px">✓ &nbsp; Usar este ponto</div>' },
+      route: { title: 'Rota do turno', body: '<div class="mini-banner"><div><strong>5 entregas pendentes</strong><span>Partida: Pizzaria Sabor da Vila</span></div><span>⌁</span></div><div class="mini-stats"><div class="mini-stat"><strong>8,4 km</strong><span>linha reta</span></div><div class="mini-stat"><strong>32 min</strong><span>estimados</span></div><div class="mini-stat"><strong>1</strong><span>urgente</span></div></div><div class="route-list"><div class="route-step"><span class="num">1</span><span>Ana Souza<br><em>Rua das Flores, 120</em></span><em>1,2 km</em></div><div class="route-step"><span class="num">2</span><span>Marcos Lima<br><em>Av. Kennedy, 456</em></span><em>2,1 km</em></div><div class="route-step"><span class="num">3</span><span>João Pedro<br><em>Rua Jurubatuba, 88</em></span><em>1,8 km</em></div><div class="route-step"><span class="num">4</span><span>Maria Costa<br><em>R. Marechal Deodoro, 1500</em></span><em>3,3 km</em></div></div><div class="mini-action" style="margin-top:15px">➤ &nbsp; Navegar no Google Maps</div><p style="color:var(--muted);font-size:8px;text-align:center">Estimativa não considera ruas ou trânsito</p>' },
+      report: { title: 'Linha do tempo', body: '<div class="report-title"><span>Quarta-feira, 24/09</span><span style="color:var(--green)">● Turno encerrado</span></div><div class="report-grid"><div class="report-metric"><span>KM GPS</span><strong>18,6 km</strong></div><div class="report-metric"><span>ENTREGAS</span><strong>12</strong></div><div class="report-metric"><span>GANHOS</span><strong>R$ 96,00</strong></div><div class="report-metric"><span>GASOLINA EST.</span><strong>R$ 3,72</strong></div></div><div class="map-art" style="height:125px;margin-top:9px"><span class="map-road one"></span><span class="map-road two"></span><span class="map-pin" style="top:28%;left:25%"><span>1</span></span><span class="map-pin" style="top:55%;left:65%;background:var(--green)"><span>✓</span></span></div><div class="mini-section">Linha do tempo</div><div class="timeline"><div class="timeline-item">18:02 · Turno iniciado</div><div class="timeline-item">18:17 · Entrega concluída</div><div class="timeline-item">18:34 · Entrega concluída</div><div class="timeline-item">21:46 · Turno encerrado</div></div>' },
+      settings: { title: 'Estabelecimento e ajustes', body: '<div class="mini-banner"><div><strong>Pizzaria Sabor da Vila</strong><span>Ponto de partida da rota</span></div><span>⌖</span></div><div class="field"><small>NOME DO ESTABELECIMENTO</small><span>Pizzaria Sabor da Vila</span></div><div class="field"><small>CIDADE</small><span>São Bernardo do Campo</span></div><div class="mini-section">Veículo e custos</div><div class="field"><small>CONSUMO MÉDIO</small><span>30 km/L</span></div><div class="field"><small>PREÇO DA GASOLINA</small><span>R$ 6,00 / L</span></div><div class="mini-banner" style="border-color:rgba(242,190,105,.24)"><div><strong>Próxima troca de óleo</strong><span>Intervalo configurado: 1.000 km</span></div><span style="color:var(--yellow)">!</span></div><div class="mini-action secondary">Salvar configurações</div><p style="color:var(--muted);font-size:8px;text-align:center">Configurações armazenadas neste aparelho</p>' }
+    };
+    const screenLabels = [['home', 'Início'], ['add', 'Pedido'], ['paste', 'Colar'], ['scan', 'OCR'], ['map', 'Mapa'], ['route', 'Rota'], ['report', 'Relatório'], ['settings', 'Ajustes']];
+    const screenTargets = [...document.querySelectorAll('[data-demo]')];
+    function renderDemo(target, screenKey) {
+      const screen = demoScreens[screenKey];
+      target.innerHTML = '<div class="phone"><div class="phone-screen"><div class="statusbar"><span>9:41</span><span>● ● ●　▰</span></div><div class="appbar">' + screen.title + '<small>⋮</small></div><div class="phone-body">' + screen.body + '</div><div class="phone-nav"></div></div></div><p class="screen-caption">Demonstração visual · interface ilustrativa</p><div class="screen-picker" role="group" aria-label="Escolher tela para demonstrar">' + screenLabels.map(([key, label]) => '<button class="screen-tab' + (key === screenKey ? ' active' : '') + '" type="button" data-screen="' + key + '" aria-pressed="' + (key === screenKey) + '">' + label + '</button>').join('') + '</div>';
+      target.querySelectorAll('[data-screen]').forEach(button => button.addEventListener('click', () => {
+        screenTargets.forEach(item => renderDemo(item, button.dataset.screen));
+      }));
+    }
+    screenTargets.forEach(target => renderDemo(target, target.dataset.demo));
+    const slides = [...document.querySelectorAll('.slide')];
+    const chapterContainers = [document.getElementById('chapters'), document.getElementById('mobile-chapters')];
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
+    const notes = document.getElementById('notes');
+    const notesText = document.getElementById('notes-text');
+    let current = 0;
+    chapterContainers.forEach(container => slides.forEach((slide, index) => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'chapter';
+      button.innerHTML = '<span class="chapter-number">' + String(index + 1).padStart(2, '0') + '</span><span>' + slide.dataset.title + '</span>';
+      button.setAttribute('aria-label', 'Ir para ' + slide.dataset.title);
+      button.addEventListener('click', () => show(index));
+      container.appendChild(button);
+    }));
+    function show(index) {
+      current = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === current));
+      document.querySelectorAll('.chapter').forEach((button, i) => {
+        button.classList.toggle('active', i === current);
+        button.setAttribute('aria-current', i === current ? 'step' : 'false');
+      });
+      counter.textContent = String(current + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+      progress.style.width = ((current + 1) / slides.length * 100) + '%';
+      notesText.textContent = slides[current].dataset.notes || '';
+      document.querySelector('.workspace').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.getElementById('prev').addEventListener('click', () => show(current - 1));
+    document.getElementById('next').addEventListener('click', () => show(current + 1));
+    document.getElementById('toggle-notes').addEventListener('click', () => notes.classList.toggle('visible'));
+    document.getElementById('fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.target.matches('input, textarea, select, [contenteditable="true"]')) return;
+      if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); show(current + 1); }
+      else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(event.key)) { event.preventDefault(); show(current - 1); }
+      else if (event.key === 'Home') show(0);
+      else if (event.key === 'End') show(slides.length - 1);
+      else if (event.key.toLowerCase() === 'n') notes.classList.toggle('visible');
+      else if (event.key.toLowerCase() === 'f') document.getElementById('fullscreen').click();
+    });
+    show(0);
+  </script>
+  <script src="rota-food-demo.js"></script>
+</body>
+</html>

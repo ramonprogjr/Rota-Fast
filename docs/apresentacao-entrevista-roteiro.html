@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rota Food — roteiro da entrevista</title>
+  <style>
+    :root { --bg: #14110f; --cream: #f5e6c8; --muted: #b8a99a; --accent: #e53935; --surface: #241c18; }
+    body { margin: 0; background: var(--bg); color: var(--cream); font-family: Georgia, "Times New Roman", serif; line-height: 1.55; }
+    main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.4rem 4rem; }
+    h1, h2, h3 { font-family: "Segoe UI", sans-serif; line-height: 1.2; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.35rem; margin-top: 2.2rem; color: #ff8a80; }
+    h3 { font-size: 1.08rem; margin-top: 1.4rem; }
+    a { color: #ff8a80; }
+    p, li { color: var(--cream); }
+    ul, ol { padding-left: 1.25rem; }
+    hr { border: 0; border-top: 1px solid rgba(245,230,200,.15); margin: 2rem 0; }
+    strong { color: #fff; }
+    @media print { body { background: #fff; color: #222; } h2 { color: #b71c1c; } p, li { color: #222; } strong { color: #111; } a { color: #b71c1c; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Rota Food — roteiro da entrevista</h1>
+  <p>Deck: abra <a href="apresentacao-entrevista.html">apresentacao-entrevista.html</a> no Chrome, <code>F</code> para tela cheia, setas para avançar, <code>N</code> para ver as notas no canto.</p>
+  <p><strong>Vaga:</strong> analista de automação sênior<br />
+  <strong>Duração alvo:</strong> 8–10 minutos + perguntas<br />
+  <strong>Frase de uma linha:</strong> o Rota Food planeja o turno do entregador — captura o pedido, sugere a sequência e fecha o dia com km e custo, sem conta, sem servidor e sem substituir o Google Maps.</p>
+  <p>Números que você pode citar com segurança (estão no produto):</p>
+  <ul>
+    <li>Versão 1.1.2, Android, MIT, sem anúncios</li>
+    <li>Cidade padrão: São Bernardo do Campo</li>
+    <li>Nominatim: User-Agent <code>RotaFood/1.1</code>, cerca de 1 pedido por segundo, até 5 candidatos</li>
+    <li>OCR: até 5 fotos de comanda, no celular</li>
+    <li>Prioridade na rota: urgente 0,4 / alta 0,7 / normal 1,0</li>
+    <li>Tempo estimado: km em linha reta ÷ 28 km/h</li>
+    <li>Óleo: lembrete a cada 1000 km</li>
+  </ul>
+  <hr />
+  <h2>Roteiro falado (timed)</h2>
+  <h3>Slide 1 — Abertura (~15 s)</h3>
+  <p>Meu nome é [seu nome]. Trouxe um projeto que eu desenvolvi, o Rota Food. É um planejador de rotas para quem entrega comida — pizzaria, restaurante, dark kitchen. A ideia não era fazer um iFood. Era automatizar o turno de quem já tem a lista de pedidos na mão.</p>
+  <h3>Slide 2 — O processo que eu vi (~1 min)</h3>
+  <p>O processo real é simples e cansativo. O pedido chega no WhatsApp ou numa comanda impressa. A pessoa copia endereço um por um, decide a ordem de cabeça, abre o Google Maps e sai. No fim do dia, quilômetro e gasolina quase nunca viram número.</p>
+  <p>O que eu vi foi um fluxo de automação clássico: dado não estruturado na entrada, decisão no meio, e um sistema que já funciona na saída — o Maps. Faltava a camada que organiza o turno.</p>
+  <h3>Slide 3 — Problema e para quem (~45 s)</h3>
+  <p>O usuário é o entregador com várias paradas no mesmo turno, não o cliente pedindo pizza no aplicativo.</p>
+  <p>A dor é tempo e erro operacional: copiar endereço, achar o ponto, escolher a próxima entrega, e não saber se o dia pagou a gasolina. Eu me prestei a resolver isso no celular, de graça, sem pedir conta.</p>
+  <h3>Slide 4 — Visão de produto (~1 min)</h3>
+  <p>A visão é um app Android, gratuito, que cabe no bolso do motoboy. Offline-first: a lista fica no SQLite do aparelho. Sem servidor meu, sem login.</p>
+  <p>O produto também define o que ele não é. Ele não substitui o Google Maps. Distância no app é estimativa em linha reta. Rua, trânsito e bloqueio ficam com o Maps. Isso é limite de produto, não descuido.</p>
+  <p>Segurança no trânsito entra na visão: configura parado, navega com o Maps, não mexe no app em movimento.</p>
+  <h3>Slide 5 — O fluxo automatizado (~1,5 min)</h3>
+  <p>O pipeline é este.</p>
+  <p>Entrada: cola um bloco de WhatsApp ou fotografa até cinco comandas. O OCR roda no aparelho; o texto da comanda não sobe para a nuvem. Um parser tenta nome, telefone, valor e endereço.</p>
+  <p>Localização: consulto o Nominatim, até cinco candidatos. A pessoa confirma no mapa ou arrasta o pino. Só depois disso o ponto entra no cache. Sem internet, dá para ver, editar e concluir o que já está salvo.</p>
+  <p>Decisão: vizinho mais próximo a partir da pizzaria ou do GPS, com peso de prioridade. Entrega sem coordenada vai para o fim.</p>
+  <p>Saída: Navegar abre o Google Maps com o <strong>texto do endereço</strong>, não com a lat/lng do OSM — porque o Maps costuma achar melhor o endereço escrito. Marca entregue, recalcula o restante. Inicia o turno no GPS, vê km, gasolina estimada, óleo a cada mil quilômetros, e manda o relatório no WhatsApp.</p>
+  <p>Isso, para mim, é automação: ingestão, normalização, decisão, handoff e fechamento.</p>
+  <h3>Slide 6 — Onde automatizar e onde não (~45 s)</h3>
+  <p>Eu automatizo o repetitivo. O humano fica no ponto em que o erro custa caro: o pino no mapa errado manda o motoboy para o lugar errado.</p>
+  <p>E eu componho sistemas em vez de reconstruir. O Maps já navega. O WhatsApp já é o canal do relatório. O app orquestra; não tenta ser GPS de rua.</p>
+  <h3>Slide 7 — Tecnologias (~1,5 min)</h3>
+  <p>É Flutter, Dart, APK Android. Estado com Provider. Dados no SQLite. Sem backend próprio.</p>
+  <p>Integrações: HTTP no Nominatim, mapa com flutter_map, GPS com geolocator, intent com url_launcher para Maps, WhatsApp e discador. OCR com Google ML Kit no dispositivo.</p>
+  <p>A rota é Haversine mais vizinho mais próximo. Não é um TSP ótimo. É uma heurística barata, previsível, suficiente para um turno de poucas dezenas de paradas, e fácil de explicar para quem usa.</p>
+  <h3>Slide 8 — Por que essas escolhas (~1 min)</h3>
+  <p>Nominatim em vez de Google Geocoding: custo zero no MVP, sem chave. OCR no aparelho: privacidade e zero fatura de API. Handoff para o Maps: não reinventar o que já está no processo.</p>
+  <p>Se eu tivesse orçamento de API e volume, o próximo passo natural seria distância de rua com OSRM ou Directions. Eu não coloquei isso no MVP porque a estimativa honesta já serve para planejar, e a navegação de verdade já existe.</p>
+  <h3>Slide 9 — O que já está no aparelho (~45 s)</h3>
+  <p>Isso não é só ideia. Está no APK: lote, OCR, confirmação, rota, turno com GPS, relatório e histórico local. Versão 1.1.2.</p>
+  <h3>Slide 10 — Fechamento (~30 s)</h3>
+  <p>O que eu faria depois, com critério: ruas reais quando a linha reta deixar de ser boa o bastante; parser e OCR mais tolerantes; nuvem só se o usuário pedir para sincronizar dois aparelhos — não por padrão.</p>
+  <p>Posso mostrar o fluxo no celular ou ir nas escolhas de automação. Obrigado.</p>
+  <hr />
+  <h2>Demo de 60 segundos (plano B)</h2>
+  <p>Celular já com o APK, estabelecimento cadastrado, GPS ok, rede ok. Ensaie uma vez.</p>
+  <ol>
+    <li><strong>0–10 s</strong> — Home: “esta é a lista do turno”.</li>
+    <li><strong>10–25 s</strong> — Colar endereços (ou OCR se a câmera estiver rápida): dois ou três endereços de SBC, não dez.</li>
+    <li><strong>25–40 s</strong> — Confirmar o pino no mapa: “o humano valida; o app não confia cego no OSM”.</li>
+    <li><strong>40–50 s</strong> — Organizar rota: “vizinho mais próximo, prioridade entra no peso”.</li>
+    <li><strong>50–60 s</strong> — Navegar: mostra que abre o Maps com o endereço escrito. Se der tempo: iniciar turno / relatório.</li>
+  </ol>
+  <p>Se a geocodificação falhar: arraste o pino e siga. Não peça desculpa longa.</p>
+  <p>Não mexa no app “andando”. Diga isso em voz alta se alguém sugerir simular no corredor.</p>
+  <hr />
+  <h2>FAQ (10 perguntas)</h2>
+  <p><strong>1. Por que vizinho mais próximo e não TSP / Google Directions?</strong><br />Porque o turno é curto, a heurística é instantânea e explicável, e a navegação de rua já é do Maps. TSP exato cresce rápido e não muda a vida de quem tem 8–15 paradas. Directions tem custo e chave; eu deixei para quando a estimativa de km deixar de ser honesta o bastante.</p>
+  <p><strong>2. A linha reta não mente o tempo?</strong><br />Mente um pouco, e o produto fala isso. Serve para ordenar e dar uma ordem de grandeza. Quem guia no asfalto é o Maps.</p>
+  <p><strong>3. O Nominatim erra o ponto. E aí?</strong><br />Cinco candidatos, confirmação no mapa, arrastar o marcador. Cache só depois de confirmar. Navegar usa o texto do endereço, não a coordenada do OSM.</p>
+  <p><strong>4. Cliente e telefone vão para a nuvem?</strong><br />Não. SQLite local. OCR local. O que sai do aparelho é o texto do endereço no Nominatim (serviço público) e o que a pessoa manda no WhatsApp ou abre no Maps.</p>
+  <p><strong>5. Como você mediria sucesso / ROI dessa automação?</strong><br />Tempo para montar o turno (do primeiro endereço até o Navegar), retrabalho de endereço errado, km do GPS versus “no olho”, e se o relatório do dia passou a ser enviado. Em um piloto: 10 turnos com o app vs 10 sem, mesmos entregadores.</p>
+  <p><strong>6. O que você faria com orçamento de API?</strong><br />Geocoding mais estável, matriz de distância em rua (OSRM self-host ou Directions), talvez OCR na nuvem só como fallback. Eu ainda manteria confirmação humana no pino.</p>
+  <p><strong>7. Por que Flutter e não nativo / web?</strong><br />Um APK, UI de alvo grande, acesso a câmera, GPS e intent. Web não instala no bolso do motoboy do mesmo jeito. Nativo duplicaria esforço num projeto solo.</p>
+  <p><strong>8. Sem backend não é limitação técnica?</strong><br />É decisão. Sem conta, sem fatura, sem LGPD de servidor meu, funciona no fundo do restaurante se a lista já estiver no celular. O preço é não sincronizar dois aparelhos. Isso é V3 opcional, não o MVP.</p>
+  <p><strong>9. Como isso se parece com o trabalho de analista de automação?</strong><br />Mapear AS-IS, achar dado sujo na entrada, normalizar, colocar regra de decisão explícita, integrar o que já existe, deixar humano no risco, medir no fechamento do turno. O app é o robô desse processo.</p>
+  <p><strong>10. Se o restaurante quisesse isso para a cozinha inteira?</strong><br />Aí muda o produto: vários usuários, fila, papel da pizzaria vs do entregador, talvez sync. Eu não fingiria que o APK solo resolve operação de frota. Escopo atual é o turno de uma pessoa no próprio celular.</p>
+  <hr />
+  <h2>Como usar na segunda</h2>
+  <ol>
+    <li>Abrir o HTML no Chrome, <code>F</code>, falar o roteiro; o slide só apoia.</li>
+    <li>Celular com APK no bolso.</li>
+    <li>Se pedirem código: camadas em <code>lib/</code> — <code>services/route_optimizer.dart</code>, <code>core/utils/address_parser.dart</code>, <code>services/ocr_service.dart</code>, <code>docs/architecture.md</code>.</li>
+    <li>Não improvise número que não está nesta página.</li>
+  </ol>
+</main>
+</body>
+</html>
