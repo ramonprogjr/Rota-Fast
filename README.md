@@ -63,13 +63,13 @@ Fora desta versão (ideia para depois): foto da fachada em endereço difícil; O
 
 ```
 lib/
-  core/          tema, constantes, parser, distância
-  models/
-  data/          SQLite e repositórios
-  services/      Nominatim, rota, Maps, GPS
-  providers/
-  screens/
-  widgets/
+	core/          tema, constantes, parser, distância
+	models/
+	data/          SQLite e repositórios
+	services/      Nominatim, rota, Maps, GPS
+	providers/
+	screens/
+	widgets/
 test/
 docs/
 ```
