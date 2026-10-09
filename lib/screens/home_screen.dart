@@ -7,6 +7,7 @@ import 'package:rota_pizza/models/geo_result.dart';
 import 'package:rota_pizza/providers/app_state.dart';
 import 'package:rota_pizza/screens/add_delivery_screen.dart';
 import 'package:rota_pizza/screens/confirm_location_screen.dart';
+import 'package:rota_pizza/screens/dashboard_screen.dart';
 import 'package:rota_pizza/screens/delivery_detail_screen.dart';
 import 'package:rota_pizza/screens/history_screen.dart';
 import 'package:rota_pizza/screens/paste_addresses_screen.dart';
@@ -33,6 +34,15 @@ class HomeScreen extends StatelessWidget {
             tooltip: 'Linha do tempo',
             onPressed: () => _openReport(context),
             icon: const Icon(Icons.timeline),
+          ),
+          IconButton(
+            tooltip: 'Painel da operação',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DashboardScreen()),
+              );
+            },
+            icon: const Icon(Icons.insights_outlined),
           ),
           IconButton(
             tooltip: 'Histórico',

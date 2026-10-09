@@ -31,6 +31,16 @@ Configure a rota com o celular parado. Use suporte no guidão e os comandos de v
 
 É preciso ter [Flutter](https://docs.flutter.dev/get-started/install) e o Android SDK.
 
+Para o Supabase da fase de plataforma, os valores podem entrar em tempo de build com `dart-define`:
+
+```bash
+flutter run \
+	--dart-define=SUPABASE_URL=https://SEU_PROJETO.supabase.co \
+	--dart-define=SUPABASE_ANON_KEY=SEU_ANON_KEY
+```
+
+Se a configuração não estiver presente, o app continua funcionando em modo local/offline com o SQLite.
+
 ```bash
 flutter pub get
 flutter analyze

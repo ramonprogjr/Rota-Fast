@@ -16,6 +16,12 @@ class ShiftSummary {
   final double doneKm;
 
   int get totalCount => pendingCount + doneCount;
+
+  double get avgDeliveryValue => doneCount == 0 ? 0 : earnings / doneCount;
+
+  double get earningsPerKm => estimatedKm <= 0 ? 0 : earnings / estimatedKm;
+
+  double get kmPerDelivery => doneCount == 0 ? 0 : estimatedKm / doneCount;
 }
 
 class DayStats {

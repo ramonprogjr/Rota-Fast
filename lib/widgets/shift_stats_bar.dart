@@ -26,6 +26,10 @@ class ShiftStatsBar extends StatelessWidget {
           _stat('Estimativa', formatKm(summary.estimatedKm)),
           _stat('Tempo', formatDuration(summary.estimatedDuration)),
           _stat('Hoje', '${summary.doneCount} feitas'),
+          if (summary.doneCount > 0)
+            _stat('Média', 'R\$ ${summary.avgDeliveryValue.toStringAsFixed(0)}'),
+          if (summary.estimatedKm > 0)
+            _stat('R\$/km', 'R\$ ${summary.earningsPerKm.toStringAsFixed(1)}'),
           if (earningsLabel != null) _stat('Ganhos', earningsLabel!),
         ],
       ),

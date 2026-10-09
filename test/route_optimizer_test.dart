@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rota_pizza/models/delivery.dart';
 import 'package:rota_pizza/models/geo_result.dart';
+import 'package:rota_pizza/models/shift_summary.dart';
 import 'package:rota_pizza/services/route_optimizer.dart';
 
 Delivery _delivery({
@@ -67,5 +68,20 @@ void main() {
     );
     expect(route.ordered.last.customerName, 'Sem GPS');
     expect(route.skippedWithoutCoords, hasLength(1));
+  });
+
+  test('resumo do turno calcula métricas de produtividade', () {
+    const summary = ShiftSummary(
+      pendingCount: 3,
+      doneCount: 4,
+      estimatedKm: 18.0,
+      estimatedDuration: Duration(minutes: 45),
+      earnings: 500,
+      doneKm: 7.5,
+    );
+
+    expect(summary.avgDeliveryValue, closeTo(125.0, 0.001));
+    expect(summary.earningsPerKm, closeTo(27.7777777778, 0.001));
+    expect(summary.kmPerDelivery, closeTo(4.5, 0.001));
   });
 }
