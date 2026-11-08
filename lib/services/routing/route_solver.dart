@@ -134,7 +134,8 @@ List<int> nearestNeighbour(RouteSolverInput input) {
     var bestScore = double.infinity;
     for (var r = 0; r < remaining.length; r++) {
       final stop = remaining[r];
-      final score = input.seconds[prev * m + stop + 1] *
+      final score =
+          input.seconds[prev * m + stop + 1] *
           _greedyFactor(input.weights[stop]);
       if (score < bestScore) {
         bestScore = score;
@@ -205,10 +206,7 @@ List<int> improveRoute(RouteSolverInput input, List<int> start) {
     // Or-opt: move bloco de 1–3 paradas para outra posição.
     for (var len = 1; len <= 3 && len < k; len++) {
       for (var a = 0; a + len <= k && !outOfBudget(); a++) {
-        final rest = <int>[
-          ...free.sublist(0, a),
-          ...free.sublist(a + len),
-        ];
+        final rest = <int>[...free.sublist(0, a), ...free.sublist(a + len)];
         final block = free.sublist(a, a + len);
         for (var dest = 0; dest <= k - len; dest++) {
           if (dest == a) {
@@ -252,8 +250,9 @@ List<int> solveRoute(RouteSolverInput input) {
   }
   final greedy = nearestNeighbour(input);
   final current = input.initialOrder.length == n ? input.initialOrder : greedy;
-  final start =
-      routeCost(input, current) < routeCost(input, greedy) ? current : greedy;
+  final start = routeCost(input, current) < routeCost(input, greedy)
+      ? current
+      : greedy;
   return improveRoute(input, start);
 }
 
@@ -261,8 +260,9 @@ List<int> solveRoute(RouteSolverInput input) {
 /// ordem em que aparecem em [currentOrder].
 List<int> applyFixedSlots(List<int> fixedSlots, List<int> currentOrder) {
   final fixedStops = fixedSlots.where((s) => s >= 0).toSet();
-  final freeInOrder =
-      currentOrder.where((s) => !fixedStops.contains(s)).iterator;
+  final freeInOrder = currentOrder
+      .where((s) => !fixedStops.contains(s))
+      .iterator;
   return [
     for (final slot in fixedSlots)
       if (slot >= 0) slot else (freeInOrder..moveNext()).current,

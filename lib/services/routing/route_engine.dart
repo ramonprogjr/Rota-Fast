@@ -165,8 +165,13 @@ class DefaultRouteEngine implements RouteEngine {
         return byDate != 0 ? byDate : a.compareTo(b);
       });
     final total = _walk(order, meters, seconds, m, request.end != null);
-    final baseline =
-        _walk(baselineOrder, meters, seconds, m, request.end != null);
+    final baseline = _walk(
+      baselineOrder,
+      meters,
+      seconds,
+      m,
+      request.end != null,
+    );
 
     return RoutingResult(
       ordered: [for (final i in order) stops[i]],
@@ -184,10 +189,11 @@ class DefaultRouteEngine implements RouteEngine {
   RoutingResult _keepCurrentOrder(RoutingRequest request, String warning) {
     try {
       final routable = request.stops.where((s) => s.hasCoordinates).toList();
-      final unroutable =
-          request.stops.where((s) => !s.hasCoordinates).toList();
-      final fallback =
-          HaversineMatrix(request.speedKmh, roadFactor: roadFactor);
+      final unroutable = request.stops.where((s) => !s.hasCoordinates).toList();
+      final fallback = HaversineMatrix(
+        request.speedKmh,
+        roadFactor: roadFactor,
+      );
       final current = _legs(request, routable, fallback);
       final byDate = [...routable]
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -257,10 +263,7 @@ class DefaultRouteEngine implements RouteEngine {
       totalMeters += meters[prev * m + m - 1];
       totalSeconds += seconds[prev * m + m - 1];
     }
-    return _Totals(
-      totalMeters / 1000,
-      Duration(seconds: totalSeconds.round()),
-    );
+    return _Totals(totalMeters / 1000, Duration(seconds: totalSeconds.round()));
   }
 
   static bool _validShape(TravelMatrix matrix, int size) {

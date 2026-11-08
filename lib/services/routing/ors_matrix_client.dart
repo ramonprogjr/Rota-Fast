@@ -46,8 +46,10 @@ class OrsMatrixClient implements DistanceMatrixProvider {
 
   static String cacheKey(List<GeoPoint> points, RoutingProfile profile) {
     final coords = points
-        .map((p) =>
-            '${p.latitude.toStringAsFixed(5)},${p.longitude.toStringAsFixed(5)}')
+        .map(
+          (p) =>
+              '${p.latitude.toStringAsFixed(5)},${p.longitude.toStringAsFixed(5)}',
+        )
         .join(';');
     return '${profile.name}|$coords';
   }

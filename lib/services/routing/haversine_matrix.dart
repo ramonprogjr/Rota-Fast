@@ -48,6 +48,5 @@ class HaversineMatrix implements DistanceMatrixProvider {
   Future<TravelMatrix> matrix(
     List<GeoPoint> points,
     RoutingProfile profile,
-  ) async =>
-      build(points);
+  ) async => build(points);
 }

@@ -50,8 +50,9 @@ class RouteOptimizer {
     double speedKmh = AppConstants.motoSpeedKmh,
   }) {
     final withCoords = pending.where((item) => item.hasCoordinates).toList();
-    final withoutCoords =
-        pending.where((item) => !item.hasCoordinates).toList();
+    final withoutCoords = pending
+        .where((item) => !item.hasCoordinates)
+        .toList();
 
     final estimate = HaversineMatrix(speedKmh);
     final points = [
@@ -95,15 +96,9 @@ class RouteOptimizer {
     final totalKm = totalMeters / 1000;
 
     return OptimizedRoute(
-      ordered: [
-        for (final i in order) withCoords[i],
-        ...withoutCoords,
-      ],
+      ordered: [for (final i in order) withCoords[i], ...withoutCoords],
       totalKm: totalKm,
-      estimatedDuration: estimateTravelTime(
-        totalKm,
-        speedKmh: speedKmh,
-      ),
+      estimatedDuration: estimateTravelTime(totalKm, speedKmh: speedKmh),
       skippedWithoutCoords: withoutCoords,
     );
   }
@@ -153,23 +148,24 @@ class RouteOptimizer {
     required List<Delivery> open,
     double roadFactor = AppConstants.roadFactor,
   }) {
-    final indexed = [
-      for (var i = 0; i < open.length; i++)
-        if (open[i].hasCoordinates) (i, open[i]),
-    ]..sort((a, b) {
-        final ra = a.$2.routeOrder;
-        final rb = b.$2.routeOrder;
-        if (ra != null && rb != null && ra != rb) {
-          return ra.compareTo(rb);
-        }
-        if (ra != null && rb == null) {
-          return -1;
-        }
-        if (ra == null && rb != null) {
-          return 1;
-        }
-        return a.$1.compareTo(b.$1);
-      });
+    final indexed =
+        [
+          for (var i = 0; i < open.length; i++)
+            if (open[i].hasCoordinates) (i, open[i]),
+        ]..sort((a, b) {
+          final ra = a.$2.routeOrder;
+          final rb = b.$2.routeOrder;
+          if (ra != null && rb != null && ra != rb) {
+            return ra.compareTo(rb);
+          }
+          if (ra != null && rb == null) {
+            return -1;
+          }
+          if (ra == null && rb != null) {
+            return 1;
+          }
+          return a.$1.compareTo(b.$1);
+        });
     var km = 0.0;
     var lat = origin.latitude;
     var lng = origin.longitude;

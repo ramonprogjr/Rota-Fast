@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/utils/haversine.dart';
 import 'package:rota_max/models/delivery.dart';
 import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/shift_summary.dart';
@@ -68,6 +70,39 @@ void main() {
     );
     expect(route.ordered.last.customerName, 'Sem GPS');
     expect(route.skippedWithoutCoords, hasLength(1));
+  });
+
+  test('resumo percorre a ordem salva (routeOrder), sem reotimizar', () {
+    // Ordem salva propositalmente ruim: longe primeiro, depois perto.
+    final far = _delivery(
+      id: 1,
+      name: 'Longe',
+      lat: origin.latitude + 0.02,
+      lng: origin.longitude,
+    ).copyWith(routeOrder: 0);
+    final near = _delivery(
+      id: 2,
+      name: 'Perto',
+      lat: origin.latitude + 0.01,
+      lng: origin.longitude,
+    ).copyWith(routeOrder: 1);
+    final summary = optimizer.summarize(origin: origin, all: [near, far]);
+    final savedKm =
+        (haversineKm(
+              origin.latitude,
+              origin.longitude,
+              far.latitude!,
+              far.longitude!,
+            ) +
+            haversineKm(
+              far.latitude!,
+              far.longitude!,
+              near.latitude!,
+              near.longitude!,
+            )) *
+        AppConstants.roadFactor;
+    expect(summary.pendingCount, 2);
+    expect(summary.estimatedKm, closeTo(savedKm, 1e-9));
   });
 
   test('resumo do turno calcula métricas de produtividade', () {
