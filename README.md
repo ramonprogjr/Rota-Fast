@@ -1,89 +1,57 @@
-# Rota Food
+# Rota Max
 
-Planejador de rotas para entregadores de comida (pizzaria, restaurante, dark kitchen).
+**Sua rota. Seu controle. Seu resultado.**
 
-Versão 1.1 — Android, gratuito, sem anúncios e sem assinatura.
-
-O Rota Food organiza várias entregas do turno. Você confirma o ponto no mapa; o **Navegar** abre o Google Maps com o **texto do endereço**. Dá para fotografar comandas (OCR no celular), iniciar o turno para registrar km e ver o relatório do dia (gasolina e óleo a cada 1000 km).
+Planejador e gerenciador de rotas de entrega para entregadores autônomos, motoristas parceiros e pequenas operações. Android, Flutter, **offline-first**: os dados ficam no celular (SQLite), sem conta e sem servidor.
 
 ## O que o app faz
 
-- Cadastra pedidos com cliente, endereço, telefone, valor e prioridade
-- Cola vários endereços de uma vez (incluindo texto do WhatsApp)
-- Fotografa até 5 comandas; o OCR lê o texto no celular (nada sobe para a nuvem)
-- Busca até 5 candidatos no OpenStreetMap e pede confirmação no mapa (dá para ajustar o pino)
-- Sugere uma sequência com o algoritmo do vizinho mais próximo
-- Mostra distância e tempo estimados (linha reta, velocidade média de moto)
-- Abre o Google Maps com o **texto do endereço** (não com a coordenada do OSM)
-- Marca como entregue e recalcula o restante da rota
-- Inicia o turno no GPS, mostra o mapa do dia, km, gasolina estimada e óleo a cada 1000 km
-- Envia o relatório do dia no WhatsApp; histórico fica só no celular
+- Cadastra entregas à mão, colando vários endereços (inclusive texto do WhatsApp) ou fotografando até 5 etiquetas/comandas (OCR no próprio celular)
+- Localiza os endereços no OpenStreetMap e pede confirmação no mapa
+- Organiza a sequência (vizinho mais próximo + 2-opt, respeitando prioridade)
+- Abre a próxima parada no Google Maps ou no Waze
+- Marca entregue, não entregue (com motivo) ou pulada, e recalcula o resto da rota
+- Registra o turno pelo GPS: km, combustível, troca de óleo e relatório do dia no WhatsApp
 
-## O que o app não faz
-
-Não substitui o Google Maps. Distâncias no app são estimativas em linha reta. Ruas, trânsito e bloqueios ficam a cargo do Maps.
+Distâncias e tempos no app são **estimativas**. Ruas, trânsito e bloqueios ficam com o app de navegação.
 
 ## Segurança no trânsito
 
-Configure a rota com o celular parado. Use suporte no guidão e os comandos de voz do Google Maps. Não mexa no aplicativo em movimento.
+Configure a rota com o celular parado. Use suporte no guidão e os comandos de voz do app de navegação.
 
-## Como gerar o APK
+## Desenvolvimento
 
-É preciso ter [Flutter](https://docs.flutter.dev/get-started/install) e o Android SDK.
-
-Para o Supabase da fase de plataforma, os valores podem entrar em tempo de build com `dart-define`:
-
-```bash
-flutter run \
-	--dart-define=SUPABASE_URL=https://SEU_PROJETO.supabase.co \
-	--dart-define=SUPABASE_ANON_KEY=SEU_ANON_KEY
-```
-
-Se a configuração não estiver presente, o app continua funcionando em modo local/offline com o SQLite.
+Requer [Flutter](https://docs.flutter.dev/get-started/install) (stable) e Android SDK.
 
 ```bash
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --release
+flutter run
 ```
 
-O arquivo sai em:
+Build para a Play Store (precisa de `android/key.properties`, ver [docs/play-store.md](docs/play-store.md)):
 
-`build/app/outputs/flutter-apk/app-release.apk`
+```bash
+flutter build appbundle --release
+```
 
-Uma cópia conveniente pode ficar em `dist/rota-food.apk` ou `dist/rota-pizza.apk` (essa pasta não vai para o Git). O `applicationId` continua `com.rotapizza.rota_pizza` para o APK atualizar o app já instalado.
+APK para instalar direto no celular: [docs/install.md](docs/install.md).
 
-Se a pasta do projeto tiver acento (`Área de Trabalho`), o build de release no Windows pode falhar no snapshot AOT. Gere o APK a partir de um caminho só com ASCII, por exemplo `C:\Users\ramon\rota-pizza-build`. O Gradle já tem `android.overridePathCheck=true`.
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [docs/PRD.md](docs/PRD.md) | Documento mestre do produto |
+| [docs/AUDIT.md](docs/AUDIT.md) | Auditoria do código herdado do Rota Food |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Camadas, pastas e integrações |
+| [docs/DATABASE.md](docs/DATABASE.md) | Schema SQLite, migrations e máquina de estados |
+| [docs/BACKLOG.md](docs/BACKLOG.md) | O que está pronto e o que falta, por etapa |
 
 ## Geocodificação (Nominatim)
 
-O app consulta `nominatim.openstreetmap.org` (até 5 candidatos, User-Agent `RotaFood/1.1`) com no máximo cerca de 1 pedido por segundo. O ponto só entra no cache depois que você confirma no mapa.
-
-- Cidade padrão: São Bernardo do Campo
-- Sem chave de API
-- Sem internet, você ainda vê, edita e conclui entregas já salvas
-- Endereços novos só são localizados com rede
-
-Se o pino cair no lugar errado, escolha outro candidato ou arraste o marcador. O **Navegar** usa o endereço escrito, não a lat/lng do OSM.
-
-Fora desta versão (ideia para depois): foto da fachada em endereço difícil; OCR ainda melhor com chave Google Cloud.
-
-## Estrutura
-
-```
-lib/
-	core/          tema, constantes, parser, distância
-	models/
-	data/          SQLite e repositórios
-	services/      Nominatim, rota, Maps, GPS
-	providers/
-	screens/
-	widgets/
-test/
-docs/
-```
+Consulta `nominatim.openstreetmap.org` com no máximo 1 pedido por segundo e User-Agent identificado. O ponto só entra no cache depois de confirmado no mapa, e o cache é consultado antes da rede. Sem internet, entregas já localizadas continuam funcionando; endereços novos ficam aguardando localização.
 
 ## Licença
 
-MIT. Dados dos clientes ficam só no aparelho; não há conta nem servidor próprio.
+MIT. Dados dos clientes ficam só no aparelho.
