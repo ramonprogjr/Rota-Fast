@@ -104,16 +104,31 @@ class DeliveryDetailScreen extends StatelessWidget {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () async {
-                final results =
-                    await state.searchAddress(query: current.fullAddress);
-                if (!context.mounted || results.isEmpty) {
+                final results = await state.searchAddress(
+                  query: current.fullAddress,
+                  state: current.state,
+                  postalCode: current.postalCode,
+                );
+                if (!context.mounted) {
                   return;
+                }
+                if (results.isEmpty) {
+                  final manual = await ConfirmLocationScreen.askMarkOnMap(
+                    context,
+                    message: state.message,
+                  );
+                  if (!manual || !context.mounted) {
+                    return;
+                  }
                 }
                 final confirmed = await Navigator.of(context).push<GeoResult>(
                   MaterialPageRoute(
                     builder: (_) => ConfirmLocationScreen(
                       address: current.fullAddress,
                       candidates: results,
+                      center: current.hasCoordinates
+                          ? GeoPoint(current.latitude!, current.longitude!)
+                          : state.originPoint,
                     ),
                   ),
                 );
