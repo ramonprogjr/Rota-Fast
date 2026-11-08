@@ -1,3 +1,10 @@
+-- ============================================================================
+-- OBSOLETO — NÃO APLICAR.
+-- Substituído por apps/api/prisma (schema.prisma + migrations). Este esboço
+-- usa outro modelo (empresa como dono) e conflita com a migration da API.
+-- Mantido só como histórico. Ver supabase/README.md.
+-- ============================================================================
+
 create extension if not exists "uuid-ossp";
 
 create table if not exists public.companies (
