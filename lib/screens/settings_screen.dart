@@ -137,6 +137,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(height: 1.4, fontSize: 15),
             ),
           ),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.bug_report_outlined),
+            title: const Text('Relatório de erros'),
+            subtitle: const Text(
+              'Guardados só neste celular, sem dados de clientes.',
+            ),
+            trailing: Text(
+              '${state.errorCount}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Sem anúncios, sem conta e sem assinatura. Dados ficam só neste celular.',
