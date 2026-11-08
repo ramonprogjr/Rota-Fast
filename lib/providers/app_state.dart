@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:rota_max/core/constants/app_constants.dart';
@@ -37,6 +39,9 @@ class BatchImportResult {
   final int duplicates;
 }
 
+/// Resultado de [AppState.navigateTo].
+enum NavOutcome { opened, failed, needsChoice }
+
 class AppState extends ChangeNotifier {
   AppState({
     required DeliveryRepository deliveryRepository,
@@ -56,7 +61,8 @@ class AppState extends ChangeNotifier {
         _shifts = shiftRepository ?? MemoryShiftRepository(),
         _location = locationService,
         maps = mapsService {
-    _tracker = ShiftTracker(_shifts);
+    _tracker = ShiftTracker(_shifts, location: _location);
+    _tracker.status.addListener(_onTrackerStatus);
   }
 
   final DeliveryRepository _deliveries;
@@ -86,6 +92,14 @@ class AppState extends ChangeNotifier {
   List<Vehicle> vehicles = [];
 
   DeliveryRoute? activeRoute;
+
+  /// Última leitura de GPS (turno ou leitura avulsa). null = ainda não lida.
+  /// Falha de GPS nunca bloqueia a rota: só alimenta o aviso na tela.
+  LocationReading? location;
+  bool locating = false;
+
+  /// App de navegação dos ajustes; null quando é "perguntar".
+  NavApp? get preferredNavApp => NavApp.fromSetting(navApp);
 
   /// Paradas ainda na rota (pendente, a caminho ou pulada), na ordem da rota.
   List<Delivery> get pending {
@@ -169,6 +183,58 @@ class AppState extends ChangeNotifier {
     }
     loading = false;
     notifyListeners();
+    // Sem await: o GPS pode demorar e não pode segurar a abertura do app.
+    unawaited(refreshLocation());
+  }
+
+  void _onTrackerStatus() {
+    final reading = _tracker.lastReading;
+    if (reading != null) {
+      location = reading;
+      notifyListeners();
+    }
+  }
+
+  /// Lê o GPS de novo (com tentativas) e atualiza [location].
+  Future<void> refreshLocation({bool retry = false}) async {
+    if (locating) {
+      return;
+    }
+    locating = true;
+    notifyListeners();
+    try {
+      final reading =
+          retry ? await _location.retry() : await _location.read();
+      // Leitura avulsa sem sinal: se o turno tem posição mais nova, fica ela.
+      final tracked = _tracker.lastReading;
+      if (!reading.isOk &&
+          tracked != null &&
+          tracked.isOk &&
+          reading.status != LocationStatus.disabled &&
+          reading.status != LocationStatus.denied &&
+          reading.status != LocationStatus.deniedForever) {
+        location = tracked;
+      } else {
+        location = reading;
+      }
+      if (activeShift != null && reading.isOk && !_tracker.isTracking) {
+        await _tracker.resubscribe();
+      }
+    } finally {
+      locating = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> openLocationSettings() => _location.openLocationSettings();
+
+  Future<bool> openAppSettings() => _location.openAppSettings();
+
+  @override
+  void dispose() {
+    _tracker.status.removeListener(_onTrackerStatus);
+    _tracker.dispose();
+    super.dispose();
   }
 
   Future<void> refresh() async {
@@ -363,13 +429,31 @@ class AppState extends ChangeNotifier {
     await _transition(delivery, DeliveryStatus.inProgress);
   }
 
-  /// Abre a navegação para a parada e a marca como "a caminho".
+  /// Abre a navegação no app dos ajustes. Com "perguntar", não abre nada
+  /// e retorna [NavOutcome.needsChoice]: a tela mostra a escolha e chama
+  /// [navigateWith].
+  Future<NavOutcome> navigateTo(Delivery delivery) async {
+    final app = preferredNavApp;
+    if (app == null) {
+      return NavOutcome.needsChoice;
+    }
+    return await navigateWith(delivery, app)
+        ? NavOutcome.opened
+        : NavOutcome.failed;
+  }
+
+  /// Abre a navegação para a parada no [app] e a marca como "a caminho".
   /// Retorna false se nenhum app de navegação abriu.
-  Future<bool> navigateTo(Delivery delivery) async {
+  Future<bool> navigateWith(Delivery delivery, NavApp app) async {
     if (delivery.isOpen) {
       await startStop(delivery);
     }
-    return maps.navigate(address: delivery.fullAddress);
+    return maps.navigate(
+      address: delivery.fullAddress,
+      latitude: delivery.latitude,
+      longitude: delivery.longitude,
+      app: app,
+    );
   }
 
   Future<List<DeliveryEvent>> eventsFor(Delivery delivery) async =>

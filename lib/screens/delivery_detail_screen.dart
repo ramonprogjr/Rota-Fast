@@ -10,6 +10,7 @@ import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/screens/add_delivery_screen.dart';
 import 'package:rota_max/screens/confirm_location_screen.dart';
+import 'package:rota_max/widgets/nav_app_sheet.dart';
 import 'package:rota_max/widgets/big_button.dart';
 import 'package:rota_max/widgets/failure_sheet.dart';
 
@@ -134,17 +135,7 @@ class DeliveryDetailScreen extends StatelessWidget {
                   ? 'Navegar (a caminho)'
                   : 'Navegar',
               icon: Icons.navigation,
-              onPressed: () async {
-                final ok = await state.navigateTo(current);
-                if (!context.mounted || ok) {
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Não foi possível abrir a navegação.'),
-                  ),
-                );
-              },
+              onPressed: () => navigateToDelivery(context, state, current),
             ),
             const SizedBox(height: 10),
             BigButton(

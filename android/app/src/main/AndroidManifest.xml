@@ -60,6 +60,7 @@
             <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
         <package android:name="com.google.android.apps.maps"/>
+        <package android:name="com.waze"/>
         <package android:name="com.whatsapp"/>
         <package android:name="com.whatsapp.w4b"/>
     </queries>
