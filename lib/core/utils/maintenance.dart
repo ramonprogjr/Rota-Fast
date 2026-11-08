@@ -19,15 +19,18 @@ class MaintenanceCalc {
     return remaining < 0 ? 0 : remaining;
   }
 
+  /// Avisa quando faltam 10% do intervalo ou menos.
   static bool shouldWarnOil({
     required double odometerKm,
     required double lastOilChangeKm,
+    double intervalKm = AppConstants.oilIntervalKm,
   }) {
     return oilRemainingKm(
           odometerKm: odometerKm,
           lastOilChangeKm: lastOilChangeKm,
+          intervalKm: intervalKm,
         ) <=
-        AppConstants.oilWarnBelowKm;
+        intervalKm * 0.1;
   }
 
   static double gasCost({
@@ -49,17 +52,22 @@ class MaintenanceCalc {
     required double gasCostValue,
     required double oilRemaining,
     required String Function(double value) money,
+    double oilIntervalKm = AppConstants.oilIntervalKm,
+    String? vehicleName,
   }) {
     final km = gpsKm.toStringAsFixed(1).replaceAll('.', ',');
     final oil = oilRemaining.toStringAsFixed(0);
+    final interval = oilIntervalKm.toStringAsFixed(0);
+    final vehicleLine =
+        vehicleName == null ? '' : 'Veículo: $vehicleName\n';
     return '''
 Rota Max — relatório $dateLabel
 
-Entregas: $deliveries
+${vehicleLine}Entregas: $deliveries
 Ganhos: ${money(earnings)}
 Km GPS: $km km
-Gasolina estimada: ${money(gasCostValue)}
-Óleo: faltam $oil km para a troca (a cada 1000 km)
+Combustível estimado: ${money(gasCostValue)}
+Óleo: faltam $oil km para a troca (a cada $interval km)
 ''';
   }
 }

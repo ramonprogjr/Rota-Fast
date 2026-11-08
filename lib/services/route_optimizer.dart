@@ -35,6 +35,7 @@ class RouteOptimizer {
   OptimizedRoute optimize({
     required GeoPoint origin,
     required List<Delivery> pending,
+    double speedKmh = AppConstants.motoSpeedKmh,
   }) {
     final withCoords = pending.where((item) => item.hasCoordinates).toList();
     final withoutCoords =
@@ -79,7 +80,7 @@ class RouteOptimizer {
       totalKm: totalKm,
       estimatedDuration: estimateTravelTime(
         totalKm,
-        speedKmh: AppConstants.motoSpeedKmh,
+        speedKmh: speedKmh,
       ),
       skippedWithoutCoords: withoutCoords,
     );
@@ -88,6 +89,7 @@ class RouteOptimizer {
   ShiftSummary summarize({
     required GeoPoint? origin,
     required List<Delivery> all,
+    double speedKmh = AppConstants.motoSpeedKmh,
   }) {
     final pending = all.where((item) => item.isOpen).toList();
     final done = all.where((item) => item.isDelivered).toList();
@@ -102,7 +104,11 @@ class RouteOptimizer {
     var estimatedKm = 0.0;
     var estimated = Duration.zero;
     if (origin != null) {
-      final route = optimize(origin: origin, pending: pending);
+      final route = optimize(
+        origin: origin,
+        pending: pending,
+        speedKmh: speedKmh,
+      );
       estimatedKm = route.totalKm;
       estimated = route.estimatedDuration;
     }

@@ -52,7 +52,7 @@ void main() {
     final base = await db.query('base_location');
     expect(base, hasLength(1));
     final settings = await db.query('settings');
-    expect(settings.map((row) => row['key']), contains('km_per_liter'));
+    expect(settings.map((row) => row['key']), contains('nav_app'));
   });
 
   test('chaves estrangeiras estão ligadas', () async {

@@ -1,12 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:rota_max/models/geo_result.dart';
-import 'package:rota_max/models/shift.dart';
 
+/// Preferências simples em chave/valor (tabela `settings`).
 abstract class SettingsRepository {
-  Future<bool> motorcycleMode();
-  Future<void> setMotorcycleMode(bool enabled);
-  Future<VehicleSettings> vehicle();
-  Future<void> saveVehicle(VehicleSettings settings);
+  Future<String?> get(String key);
+  Future<void> set(String key, String value);
 }
 
 class SqliteSettingsRepository implements SettingsRepository {
@@ -14,78 +12,38 @@ class SqliteSettingsRepository implements SettingsRepository {
 
   final Database _db;
 
-  Future<String> _get(String key, String fallback) async {
+  @override
+  Future<String?> get(String key) async {
     final rows = await _db.query(
       'settings',
       where: 'key = ?',
       whereArgs: [key],
     );
-    if (rows.isEmpty) {
-      return fallback;
-    }
-    return rows.first['value'] as String? ?? fallback;
+    return rows.isEmpty ? null : rows.first['value'] as String?;
   }
 
-  Future<void> _put(String key, String value) async {
+  @override
+  Future<void> set(String key, String value) async {
     await _db.insert(
       'settings',
       {'key': key, 'value': value},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
-
-  @override
-  Future<bool> motorcycleMode() async {
-    return await _get('motorcycle_mode', '1') == '1';
-  }
-
-  @override
-  Future<void> setMotorcycleMode(bool enabled) =>
-      _put('motorcycle_mode', enabled ? '1' : '0');
-
-  @override
-  Future<VehicleSettings> vehicle() async {
-    return VehicleSettings(
-      gasPriceLiter: double.tryParse(await _get('gas_price_liter', '6.0')) ?? 6,
-      kmPerLiter: double.tryParse(await _get('km_per_liter', '30.0')) ?? 30,
-      odometerKm: double.tryParse(await _get('odometer_km', '0')) ?? 0,
-      lastOilChangeKm:
-          double.tryParse(await _get('last_oil_change_km', '0')) ?? 0,
-    );
-  }
-
-  @override
-  Future<void> saveVehicle(VehicleSettings settings) async {
-    await _put('gas_price_liter', settings.gasPriceLiter.toString());
-    await _put('km_per_liter', settings.kmPerLiter.toString());
-    await _put('odometer_km', settings.odometerKm.toString());
-    await _put('last_oil_change_km', settings.lastOilChangeKm.toString());
-  }
 }
 
 class MemorySettingsRepository implements SettingsRepository {
-  MemorySettingsRepository({
-    this.motorcycleEnabled = true,
-    VehicleSettings? vehicle,
-  }) : vehicleSettings = vehicle ?? const VehicleSettings();
+  MemorySettingsRepository([Map<String, String>? seed])
+      : _values = {...?seed};
 
-  bool motorcycleEnabled;
-  VehicleSettings vehicleSettings;
+  final Map<String, String> _values;
 
   @override
-  Future<bool> motorcycleMode() async => motorcycleEnabled;
+  Future<String?> get(String key) async => _values[key];
 
   @override
-  Future<void> setMotorcycleMode(bool enabled) async {
-    motorcycleEnabled = enabled;
-  }
-
-  @override
-  Future<VehicleSettings> vehicle() async => vehicleSettings;
-
-  @override
-  Future<void> saveVehicle(VehicleSettings settings) async {
-    vehicleSettings = settings;
+  Future<void> set(String key, String value) async {
+    _values[key] = value;
   }
 }
 

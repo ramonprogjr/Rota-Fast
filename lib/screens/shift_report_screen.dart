@@ -99,7 +99,8 @@ class _ReportBodyState extends State<_ReportBody> {
     final end = report.shift.endedAt == null
         ? 'agora'
         : DateFormat('HH:mm').format(report.shift.endedAt!);
-    final oilTotal = AppConstants.oilIntervalKm;
+    final oilTotal =
+        report.oilIntervalKm > 0 ? report.oilIntervalKm : 1.0;
     final oilUsed = report.oilKmSinceChange.clamp(0, oilTotal).toDouble();
     final oilProgress = (oilUsed / oilTotal).clamp(0.0, 1.0);
 

@@ -6,6 +6,7 @@ import 'package:rota_max/data/repositories/base_location_repository.dart';
 import 'package:rota_max/data/repositories/settings_repository.dart';
 import 'package:rota_max/data/repositories/sqlite_delivery_repository.dart';
 import 'package:rota_max/data/repositories/shift_repository.dart';
+import 'package:rota_max/data/repositories/vehicle_repository.dart';
 import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/services/geocoding_service.dart';
 
@@ -21,6 +22,7 @@ Future<void> main() async {
       cache: SqliteGeocodeCacheRepository(db),
     ),
     shiftRepository: SqliteShiftRepository(db),
+    vehicleRepository: SqliteVehicleRepository(db),
   );
   await state.load();
   runApp(RotaMaxApp(state: state));

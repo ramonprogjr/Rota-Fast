@@ -3,6 +3,7 @@ import 'package:rota_max/models/delivery.dart';
 class Shift {
   Shift({
     this.id,
+    this.vehicleId,
     required this.startedAt,
     this.endedAt,
     this.gpsKm = 0,
@@ -11,6 +12,7 @@ class Shift {
   });
 
   final int? id;
+  final int? vehicleId;
   final DateTime startedAt;
   final DateTime? endedAt;
   final double gpsKm;
@@ -21,6 +23,7 @@ class Shift {
 
   Shift copyWith({
     int? id,
+    int? vehicleId,
     DateTime? startedAt,
     DateTime? endedAt,
     double? gpsKm,
@@ -30,6 +33,7 @@ class Shift {
   }) {
     return Shift(
       id: id ?? this.id,
+      vehicleId: vehicleId ?? this.vehicleId,
       startedAt: startedAt ?? this.startedAt,
       endedAt: clearEndedAt ? null : (endedAt ?? this.endedAt),
       gpsKm: gpsKm ?? this.gpsKm,
@@ -41,6 +45,7 @@ class Shift {
   Map<String, Object?> toMap() {
     return {
       'id': id,
+      'vehicle_id': vehicleId,
       'started_at': startedAt.toIso8601String(),
       'ended_at': endedAt?.toIso8601String(),
       'gps_km': gpsKm,
@@ -52,6 +57,7 @@ class Shift {
   factory Shift.fromMap(Map<String, Object?> map) {
     return Shift(
       id: map['id'] as int?,
+      vehicleId: map['vehicle_id'] as int?,
       startedAt: DateTime.tryParse(map['started_at'] as String? ?? '') ??
           DateTime.now(),
       endedAt: DateTime.tryParse(map['ended_at'] as String? ?? ''),
@@ -99,34 +105,6 @@ class TrackPoint {
   }
 }
 
-class VehicleSettings {
-  const VehicleSettings({
-    this.gasPriceLiter = 6.0,
-    this.kmPerLiter = 30.0,
-    this.odometerKm = 0,
-    this.lastOilChangeKm = 0,
-  });
-
-  final double gasPriceLiter;
-  final double kmPerLiter;
-  final double odometerKm;
-  final double lastOilChangeKm;
-
-  VehicleSettings copyWith({
-    double? gasPriceLiter,
-    double? kmPerLiter,
-    double? odometerKm,
-    double? lastOilChangeKm,
-  }) {
-    return VehicleSettings(
-      gasPriceLiter: gasPriceLiter ?? this.gasPriceLiter,
-      kmPerLiter: kmPerLiter ?? this.kmPerLiter,
-      odometerKm: odometerKm ?? this.odometerKm,
-      lastOilChangeKm: lastOilChangeKm ?? this.lastOilChangeKm,
-    );
-  }
-}
-
 class DayReport {
   const DayReport({
     required this.shift,
@@ -138,6 +116,8 @@ class DayReport {
     required this.gasCost,
     required this.oilKmSinceChange,
     required this.oilKmRemaining,
+    required this.oilIntervalKm,
+    required this.vehicleName,
   });
 
   final Shift shift;
@@ -149,4 +129,6 @@ class DayReport {
   final double gasCost;
   final double oilKmSinceChange;
   final double oilKmRemaining;
+  final double oilIntervalKm;
+  final String vehicleName;
 }

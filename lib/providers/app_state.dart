@@ -8,6 +8,7 @@ import 'package:rota_max/data/repositories/delivery_repository.dart';
 import 'package:rota_max/data/repositories/base_location_repository.dart';
 import 'package:rota_max/data/repositories/settings_repository.dart';
 import 'package:rota_max/data/repositories/shift_repository.dart';
+import 'package:rota_max/data/repositories/vehicle_repository.dart';
 import 'package:rota_max/models/delivery.dart';
 import 'package:rota_max/models/delivery_event.dart';
 import 'package:rota_max/models/delivery_route.dart';
@@ -15,6 +16,7 @@ import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/base_location.dart';
 import 'package:rota_max/models/shift.dart';
 import 'package:rota_max/models/shift_summary.dart';
+import 'package:rota_max/models/vehicle.dart';
 import 'package:rota_max/services/geocoding_service.dart';
 import 'package:rota_max/services/location_service.dart';
 import 'package:rota_max/services/maps_service.dart';
@@ -45,7 +47,9 @@ class AppState extends ChangeNotifier {
     MapsService mapsService = const MapsService(),
     this._optimizer = const RouteOptimizer(),
     ShiftRepository? shiftRepository,
+    VehicleRepository? vehicleRepository,
   })  : _deliveries = deliveryRepository,
+        _vehicles = vehicleRepository ?? MemoryVehicleRepository(),
         _baseLocations = baseLocationRepository,
         _settings = settingsRepository,
         _geocoding = geocodingService,
@@ -60,6 +64,7 @@ class AppState extends ChangeNotifier {
   final SettingsRepository _settings;
   final GeocodingService _geocoding;
   final ShiftRepository _shifts;
+  final VehicleRepository _vehicles;
   final LocationService _location;
   final MapsService maps;
   final RouteOptimizer _optimizer;
@@ -70,10 +75,15 @@ class AppState extends ChangeNotifier {
   String? message;
   List<Delivery> items = [];
   BaseLocation baseLocation = BaseLocation();
-  bool motorcycleMode = true;
   Shift? activeShift;
   Shift? lastEndedShift;
-  VehicleSettings vehicle = const VehicleSettings();
+
+  /// Veículo ativo (o turno e o ETA usam este).
+  Vehicle vehicle = Vehicle.fallback();
+
+  /// App de navegação preferido: 'google', 'waze' ou 'ask'.
+  String navApp = 'google';
+  List<Vehicle> vehicles = [];
 
   DeliveryRoute? activeRoute;
 
@@ -135,12 +145,10 @@ class AppState extends ChangeNotifier {
   ShiftSummary get summary => _optimizer.summarize(
         origin: originPoint,
         all: items,
+        speedKmh: vehicle.avgSpeedKmh,
       );
 
-  bool get oilWarning => MaintenanceCalc.shouldWarnOil(
-        odometerKm: vehicle.odometerKm,
-        lastOilChangeKm: vehicle.lastOilChangeKm,
-      );
+  bool get oilWarning => vehicle.oilWarning;
 
   NumberFormat get money =>
       NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
@@ -152,8 +160,8 @@ class AppState extends ChangeNotifier {
     activeRoute = await _deliveries.activeRoute();
     baseLocation = await _baseLocations.get();
     _geocoding.fallbackCity = cityHint();
-    motorcycleMode = await _settings.motorcycleMode();
-    vehicle = await _settings.vehicle();
+    await _loadVehicles();
+    navApp = await _settings.get('nav_app') ?? 'google';
     activeShift = await _shifts.openShift();
     lastEndedShift = activeShift ?? await _shifts.latestEnded();
     if (activeShift != null) {
@@ -168,8 +176,7 @@ class AppState extends ChangeNotifier {
     activeRoute = await _deliveries.activeRoute();
     baseLocation = await _baseLocations.get();
     _geocoding.fallbackCity = cityHint();
-    motorcycleMode = await _settings.motorcycleMode();
-    vehicle = await _settings.vehicle();
+    await _loadVehicles();
     activeShift = await _shifts.openShift();
     lastEndedShift = activeShift ?? await _shifts.latestEnded();
     notifyListeners();
@@ -399,6 +406,7 @@ class AppState extends ChangeNotifier {
       final route = _optimizer.optimize(
         origin: origin,
         pending: currentPending,
+        speedKmh: vehicle.avgSpeedKmh,
       );
       await _deliveries.saveRouteOrder(
         route.ordered,
@@ -478,16 +486,68 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> setMotorcycleMode(bool enabled) async {
-    await _settings.setMotorcycleMode(enabled);
-    motorcycleMode = enabled;
+  Future<void> setNavApp(String value) async {
+    await _settings.set('nav_app', value);
+    navApp = value;
     notifyListeners();
   }
 
-  Future<void> saveVehicle(VehicleSettings next) async {
-    await _settings.saveVehicle(next);
-    vehicle = next;
+  Future<void> _loadVehicles() async {
+    vehicles = await _vehicles.getAll();
+    vehicle = await _vehicles.active() ?? Vehicle.fallback();
+  }
+
+  Future<Vehicle> saveVehicle(Vehicle next) async {
+    final saved = await _vehicles.save(next);
+    await _loadVehicles();
     notifyListeners();
+    return saved;
+  }
+
+  /// Troca o veículo ativo. Com turno aberto, os km do turno continuam
+  /// indo para o veículo com que ele começou.
+  Future<void> activateVehicle(Vehicle next) async {
+    if (next.id == null) {
+      return;
+    }
+    await _vehicles.activate(next.id!);
+    await _loadVehicles();
+    notifyListeners();
+  }
+
+  Future<void> deleteVehicle(Vehicle target) async {
+    if (target.id == null) {
+      return;
+    }
+    await _vehicles.delete(target.id!);
+    await _loadVehicles();
+    notifyListeners();
+  }
+
+  /// "Troquei o óleo": zera a contagem no odômetro informado.
+  Future<void> registerOilChange(
+    Vehicle target,
+    double odometerKm, {
+    String? note,
+  }) async {
+    if (target.id == null) {
+      return;
+    }
+    await _vehicles.registerOilChange(target.id!, odometerKm, note: note);
+    await _loadVehicles();
+    notifyListeners();
+  }
+
+  Future<List<OilChange>> oilChanges(Vehicle target) async =>
+      target.id == null ? [] : _vehicles.oilChanges(target.id!);
+
+  Vehicle _vehicleFor(Shift shift) {
+    for (final item in vehicles) {
+      if (item.id == shift.vehicleId) {
+        return item;
+      }
+    }
+    return vehicle;
   }
 
   Future<BatchImportResult> importParsed(
@@ -559,6 +619,7 @@ class AppState extends ChangeNotifier {
     final shift = await _shifts.start(
       Shift(
         startedAt: DateTime.now(),
+        vehicleId: vehicle.id,
         odometerStart: vehicle.odometerKm,
       ),
     );
@@ -589,14 +650,22 @@ class AppState extends ChangeNotifier {
         }
       }
     }
+    final used = _vehicleFor(current);
     final ended = current.copyWith(
       endedAt: DateTime.now(),
       gpsKm: gpsKm,
-      odometerEnd: odometerEnd ?? (vehicle.odometerKm + gpsKm),
+      odometerEnd: odometerEnd ?? (used.odometerKm + gpsKm),
     );
     await _shifts.update(ended);
-    final nextOdo = ended.odometerEnd ?? vehicle.odometerKm;
-    await saveVehicle(vehicle.copyWith(odometerKm: nextOdo));
+    // Os km do turno vão para o veículo com que ele começou.
+    if (used.id != null) {
+      if (odometerEnd != null) {
+        await _vehicles.save(used.copyWith(odometerKm: odometerEnd));
+      } else {
+        await _vehicles.addKm(used.id!, gpsKm);
+      }
+    }
+    await _loadVehicles();
     activeShift = null;
     lastEndedShift = ended;
     notifyListeners();
@@ -613,11 +682,8 @@ class AppState extends ChangeNotifier {
       0,
       (sum, item) => sum + (item.value ?? 0),
     );
-    final gas = MaintenanceCalc.gasCost(
-      km: shift.gpsKm,
-      kmPerLiter: vehicle.kmPerLiter,
-      pricePerLiter: vehicle.gasPriceLiter,
-    );
+    final used = _vehicleFor(shift);
+    final gas = used.fuelCost(shift.gpsKm);
     return DayReport(
       shift: shift,
       points: points,
@@ -626,14 +692,10 @@ class AppState extends ChangeNotifier {
       earnings: earnings,
       gpsKm: shift.gpsKm,
       gasCost: gas,
-      oilKmSinceChange: MaintenanceCalc.kmSinceOil(
-        odometerKm: vehicle.odometerKm,
-        lastOilChangeKm: vehicle.lastOilChangeKm,
-      ),
-      oilKmRemaining: MaintenanceCalc.oilRemainingKm(
-        odometerKm: vehicle.odometerKm,
-        lastOilChangeKm: vehicle.lastOilChangeKm,
-      ),
+      oilKmSinceChange: used.kmSinceOil,
+      oilKmRemaining: used.oilRemainingKm,
+      oilIntervalKm: used.oilIntervalKm,
+      vehicleName: used.name,
     );
   }
 
@@ -669,6 +731,8 @@ class AppState extends ChangeNotifier {
       gpsKm: report.gpsKm,
       gasCostValue: report.gasCost,
       oilRemaining: report.oilKmRemaining,
+      oilIntervalKm: report.oilIntervalKm,
+      vehicleName: report.vehicleName,
       money: money.format,
     );
   }

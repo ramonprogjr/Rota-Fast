@@ -69,13 +69,7 @@ class HomeScreen extends StatelessWidget {
                 ],
                 if (state.oilWarning) ...[
                   const SizedBox(height: 12),
-                  const Text(
-                    'Óleo: faltam menos de 100 km para a troca (a cada 1000 km).',
-                    style: TextStyle(
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  _OilBanner(state: state),
                 ],
                 if (next != null) ...[
                   const SizedBox(height: 12),
@@ -401,6 +395,41 @@ class _BaseLocationBanner extends StatelessWidget {
               const Icon(Icons.chevron_right, color: AppColors.muted),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OilBanner extends StatelessWidget {
+  const _OilBanner({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final vehicle = state.vehicle;
+    return Material(
+      color: AppColors.warningSurface,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const Icon(Icons.oil_barrel_outlined, color: AppColors.warning),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${vehicle.name}: faltam ${vehicle.oilRemainingKm.round()} km '
+                'para a troca de óleo (a cada '
+                '${vehicle.oilIntervalKm.round()} km).',
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

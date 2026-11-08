@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rota_max/screens/history_screen.dart';
 import 'package:rota_max/screens/home_screen.dart';
 import 'package:rota_max/screens/settings_screen.dart';
-import 'package:rota_max/screens/vehicles_placeholder_screen.dart';
+import 'package:rota_max/screens/vehicles_screen.dart';
 
 /// Estrutura principal: barra inferior com Rota, Relatórios, Veículos e
 /// Ajustes. As abas ficam vivas (IndexedStack) para não perder rolagem.
@@ -21,7 +21,7 @@ class _MainShellState extends State<MainShell> {
   static const _pages = <Widget>[
     HomeScreen(),
     HistoryScreen(),
-    VehiclesPlaceholderScreen(),
+    VehiclesScreen(),
     SettingsScreen(),
   ];
 

@@ -28,12 +28,12 @@ Foco da **v1.0**: app de entregas, roteirização e trajetos para **motoristas p
 
 ## Etapa 5 — Roteirização e economia (PRD §5)
 - ✅ Vizinho mais próximo com prioridade · ⬜ 2-opt · ⬜ Fator de malha viária
-- ⬜ Velocidade do veículo ativo · ⬜ Linha de base (ordem de cadastro) e economia
+- ✅ Velocidade do veículo ativo · ⬜ Linha de base (ordem de cadastro) e economia
 - ⬜ Reordenação manual · ⬜ Tela "Rota pronta"
 
 ## Etapa 6 — Veículos e manutenção
-- ⬜ Vários veículos, um ativo, padrões por tipo
-- ⬜ Km do turno no odômetro do veículo · ⬜ Aviso e histórico de troca de óleo
+- ✅ Vários veículos, um ativo, padrões por tipo
+- ✅ Km do turno no odômetro do veículo · ✅ Aviso e histórico de troca de óleo
 
 ## Etapa 7 — Mapa, navegação e postos (PRD §6)
 - ⬜ Mapa das paradas · ✅ Google Maps · ⬜ Waze · ⬜ Aviso de GPS desligado

@@ -4,6 +4,8 @@ import 'package:rota_max/data/repositories/memory_delivery_repository.dart';
 import 'package:rota_max/data/repositories/base_location_repository.dart';
 import 'package:rota_max/data/repositories/settings_repository.dart';
 import 'package:rota_max/data/repositories/shift_repository.dart';
+import 'package:rota_max/data/repositories/vehicle_repository.dart';
+import 'package:rota_max/models/vehicle.dart';
 import 'package:rota_max/models/base_location.dart';
 import 'package:rota_max/models/shift.dart';
 import 'package:rota_max/providers/app_state.dart';
@@ -42,14 +44,18 @@ void main() {
           longitude: DemoShiftData.originLng,
         ),
       ),
-      settingsRepository: MemorySettingsRepository(
-        vehicle: const VehicleSettings(
-          gasPriceLiter: DemoShiftData.gasPriceLiter,
+      settingsRepository: MemorySettingsRepository(),
+      vehicleRepository: MemoryVehicleRepository([
+        Vehicle(
+          name: 'Moto',
+          type: VehicleType.motorcycle,
+          fuelPrice: DemoShiftData.gasPriceLiter,
           kmPerLiter: DemoShiftData.kmPerLiter,
           odometerKm: DemoShiftData.odometerEnd,
           lastOilChangeKm: DemoShiftData.lastOilChangeKm,
+          isActive: true,
         ),
-      ),
+      ]),
       geocodingService: GeocodingService(cache: MemoryGeocodeCacheRepository()),
       shiftRepository: shifts,
     );

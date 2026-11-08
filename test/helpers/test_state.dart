@@ -1,6 +1,7 @@
 import 'package:rota_max/data/repositories/memory_delivery_repository.dart';
 import 'package:rota_max/data/repositories/base_location_repository.dart';
 import 'package:rota_max/data/repositories/settings_repository.dart';
+import 'package:rota_max/data/repositories/vehicle_repository.dart';
 import 'package:rota_max/models/delivery.dart';
 import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/base_location.dart';
@@ -40,6 +41,7 @@ AppState buildTestState({
   List<Delivery>? deliveries,
   BaseLocation? baseLocation,
   GeoResult? geo,
+  VehicleRepository? vehicles,
 }) {
   return AppState(
     deliveryRepository: MemoryDeliveryRepository(deliveries),
@@ -54,5 +56,6 @@ AppState buildTestState({
     ),
     settingsRepository: MemorySettingsRepository(),
     geocodingService: FakeGeocodingService(result: geo),
+    vehicleRepository: vehicles,
   );
 }

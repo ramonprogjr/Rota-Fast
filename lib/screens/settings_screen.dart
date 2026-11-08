@@ -17,10 +17,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _name;
   late final TextEditingController _address;
   late final TextEditingController _city;
-  late final TextEditingController _gas;
-  late final TextEditingController _kmL;
-  late final TextEditingController _odo;
-  late final TextEditingController _oil;
 
   @override
   void initState() {
@@ -29,19 +25,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _name = TextEditingController(text: baseLocation.name);
     _address = TextEditingController(text: baseLocation.address);
     _city = TextEditingController(text: baseLocation.city);
-    final vehicle = context.read<AppState>().vehicle;
-    _gas = TextEditingController(
-      text: vehicle.gasPriceLiter.toStringAsFixed(2).replaceAll('.', ','),
-    );
-    _kmL = TextEditingController(
-      text: vehicle.kmPerLiter.toStringAsFixed(1).replaceAll('.', ','),
-    );
-    _odo = TextEditingController(
-      text: vehicle.odometerKm.toStringAsFixed(0),
-    );
-    _oil = TextEditingController(
-      text: vehicle.lastOilChangeKm.toStringAsFixed(0),
-    );
   }
 
   @override
@@ -49,10 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _name.dispose();
     _address.dispose();
     _city.dispose();
-    _gas.dispose();
-    _kmL.dispose();
-    _odo.dispose();
-    _oil.dispose();
     super.dispose();
   }
 
@@ -127,61 +106,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
           ),
           const SizedBox(height: 24),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Modo moto'),
-            subtitle: const Text(
-              'Abre o Google Maps em modo direção. No Maps, escolha a opção de motocicleta se aparecer.',
-            ),
-            value: state.motorcycleMode,
-            onChanged: state.setMotorcycleMode,
-          ),
-          const SizedBox(height: 16),
           const Text(
-            'Moto: gasolina e óleo',
+            'App de navegação',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _gas,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Preço do litro (R\$)'),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'google', label: Text('Google Maps')),
+              ButtonSegment(value: 'waze', label: Text('Waze')),
+              ButtonSegment(value: 'ask', label: Text('Perguntar')),
+            ],
+            selected: {state.navApp},
+            onSelectionChanged: (value) => state.setNavApp(value.first),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _kmL,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Km por litro'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _odo,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Hodômetro atual (km)'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _oil,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Hodômetro da última troca de óleo',
-            ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: () {
-              double parse(String raw) =>
-                  double.tryParse(raw.trim().replaceAll(',', '.')) ?? 0;
-              state.saveVehicle(
-                state.vehicle.copyWith(
-                  gasPriceLiter: parse(_gas.text),
-                  kmPerLiter: parse(_kmL.text),
-                  odometerKm: parse(_odo.text),
-                  lastOilChangeKm: parse(_oil.text),
-                ),
-              );
-            },
-            child: const Text('Salvar dados da moto'),
+          const SizedBox(height: 8),
+          const Text(
+            'Veículo, consumo e troca de óleo ficam na aba Veículos.',
+            style: TextStyle(color: AppColors.muted),
           ),
           const SizedBox(height: 16),
           Container(
@@ -191,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Text(
-              'Segurança: organize a rota com o celular parado. Use suporte no guidão e a voz do Google Maps. Não mexa no app em movimento.',
+              'Segurança: organize a rota com o celular parado. Use suporte no painel ou no guidão e a voz do app de navegação. Não mexa no app em movimento.',
               style: TextStyle(height: 1.4, fontSize: 15),
             ),
           ),

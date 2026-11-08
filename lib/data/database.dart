@@ -280,21 +280,11 @@ class AppDatabase {
       },
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
-    Future<void> put(String key, String value) async {
-      await db.insert(
-        'settings',
-        {'key': key, 'value': value},
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
-    }
-
-    // Chaves antigas de veículo: saem quando a tela de veículos (Etapa 6)
-    // passar a usar a tabela vehicles.
-    await put('motorcycle_mode', '1');
-    await put('gas_price_liter', '6.0');
-    await put('km_per_liter', '30.0');
-    await put('odometer_km', '0');
-    await put('last_oil_change_km', '0');
+    await db.insert(
+      'settings',
+      {'key': 'nav_app', 'value': 'google'},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
 
     final vehicles = Sqflite.firstIntValue(
           await db.rawQuery('SELECT COUNT(*) FROM vehicles'),
