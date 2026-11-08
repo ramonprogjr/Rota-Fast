@@ -5,6 +5,7 @@ import 'package:rota_max/core/theme/app_theme.dart';
 import 'package:rota_max/models/delivery.dart';
 import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/screens/delivery_detail_screen.dart';
+import 'package:rota_max/screens/routes_history_screen.dart';
 import 'package:rota_max/widgets/delivery_card.dart';
 import 'package:rota_max/widgets/shift_stats_bar.dart';
 
@@ -20,7 +21,20 @@ class HistoryScreen extends StatelessWidget {
     final headerFormat = DateFormat("EEEE, dd/MM", 'pt_BR');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Histórico')),
+      appBar: AppBar(
+        title: const Text('Histórico'),
+        actions: [
+          IconButton(
+            tooltip: 'Rotas anteriores',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const RoutesHistoryScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.alt_route),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

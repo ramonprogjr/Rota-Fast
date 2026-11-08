@@ -98,6 +98,8 @@ class Delivery {
     this.failureReason,
     this.attempts = 0,
     this.routeOrder,
+    this.locked = false,
+    this.fixedPosition,
     this.locationConfirmed = false,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -134,6 +136,16 @@ class Delivery {
 
   /// Posição na rota ativa. Vem de `route_stops`, não da tabela de entregas.
   final int? routeOrder;
+
+  /// Trava da parada na rota ativa (`route_stops.locked`): ao recalcular,
+  /// ela continua na posição em que está.
+  final bool locked;
+
+  /// Posição fixa (0 = primeira entre as paradas abertas) na rota ativa
+  /// (`route_stops.fixed_position`). Null = livre.
+  final int? fixedPosition;
+
+  bool get hasConstraint => locked || fixedPosition != null;
   final bool locationConfirmed;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -203,11 +215,14 @@ class Delivery {
     FailureReason? failureReason,
     int? attempts,
     int? routeOrder,
+    bool? locked,
+    int? fixedPosition,
     bool? locationConfirmed,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deliveredAt,
     bool clearRouteOrder = false,
+    bool clearFixedPosition = false,
     bool clearDeliveredAt = false,
     bool clearCoordinates = false,
     bool clearFailureReason = false,
@@ -235,6 +250,10 @@ class Delivery {
           clearFailureReason ? null : (failureReason ?? this.failureReason),
       attempts: attempts ?? this.attempts,
       routeOrder: clearRouteOrder ? null : (routeOrder ?? this.routeOrder),
+      locked: clearRouteOrder ? false : (locked ?? this.locked),
+      fixedPosition: clearRouteOrder || clearFixedPosition
+          ? null
+          : (fixedPosition ?? this.fixedPosition),
       locationConfirmed: locationConfirmed ?? this.locationConfirmed,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -242,7 +261,8 @@ class Delivery {
     );
   }
 
-  /// Colunas da tabela `deliveries`. `routeOrder` não é gravado aqui.
+  /// Colunas da tabela `deliveries`. `routeOrder`, `locked` e
+  /// `fixedPosition` ficam em `route_stops`, não aqui.
   Map<String, Object?> toMap() {
     return {
       'id': id,
@@ -313,6 +333,8 @@ class Delivery {
       failureReason: FailureReason.fromCode(map['failure_reason']),
       attempts: (map['attempts'] as int?) ?? 0,
       routeOrder: map['route_order'] as int?,
+      locked: (map['stop_locked'] as int?) == 1,
+      fixedPosition: map['stop_fixed_position'] as int?,
       locationConfirmed: (map['location_confirmed'] as int?) == 1,
       createdAt: created,
       updatedAt: DateTime.tryParse(map['updated_at'] as String? ?? '') ?? created,

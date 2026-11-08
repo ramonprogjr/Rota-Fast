@@ -8,6 +8,7 @@ import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/screens/add_delivery_screen.dart';
 import 'package:rota_max/screens/confirm_location_screen.dart';
 import 'package:rota_max/screens/delivery_detail_screen.dart';
+import 'package:rota_max/screens/edit_route_screen.dart';
 import 'package:rota_max/screens/paste_addresses_screen.dart';
 import 'package:rota_max/screens/route_map_screen.dart';
 import 'package:rota_max/screens/scan_tickets_screen.dart';
@@ -143,6 +144,22 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (pending.length > 1) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      key: const Key('home-edit-order'),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const EditRouteScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.swap_vert),
+                      label: const Text('Editar ordem'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   children: [

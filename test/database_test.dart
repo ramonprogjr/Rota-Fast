@@ -134,6 +134,49 @@ void main() {
     );
   });
 
+  test('colunas de edição manual, exclusão lógica e eventos de edição',
+      () async {
+    Future<Set<Object?>> columns(String table) async =>
+        (await db.rawQuery('PRAGMA table_info($table)'))
+            .map((row) => row['name'])
+            .toSet();
+    expect(await columns('deliveries'), contains('deleted_at'));
+    expect(
+      await columns('routes'),
+      containsAll(['name', 'end_lat', 'end_lng', 'manually_edited']),
+    );
+    expect(
+      await columns('route_stops'),
+      containsAll(['locked', 'fixed_position']),
+    );
+    expect(
+      await columns('delivery_events'),
+      containsAll(['kind', 'changed_fields']),
+    );
+    expect(
+      await columns('error_log'),
+      containsAll(['source', 'error_type', 'location', 'created_at']),
+    );
+
+    final id = await insertDelivery();
+    final now = DateTime.now().toIso8601String();
+    await db.insert('delivery_events', {
+      'delivery_id': id,
+      'to_status': 'PENDING',
+      'created_at': now,
+    });
+    expect((await db.query('delivery_events')).single['kind'], 'status');
+    expect(
+      () => db.insert('delivery_events', {
+        'delivery_id': id,
+        'kind': 'outro',
+        'to_status': 'PENDING',
+        'created_at': now,
+      }),
+      throwsA(isA<DatabaseException>()),
+    );
+  });
+
   test('wipe apaga tudo e recria os padrões', () async {
     await insertDelivery();
     await AppDatabase.wipe(db);

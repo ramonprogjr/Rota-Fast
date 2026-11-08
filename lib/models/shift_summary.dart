@@ -6,6 +6,8 @@ class ShiftSummary {
     required this.estimatedDuration,
     required this.earnings,
     required this.doneKm,
+    this.plannedKm,
+    this.plannedDuration,
   });
 
   final int pendingCount;
@@ -14,6 +16,10 @@ class ShiftSummary {
   final Duration estimatedDuration;
   final double earnings;
   final double doneKm;
+
+  /// Estimativa gravada na rota ativa quando ela foi organizada.
+  final double? plannedKm;
+  final Duration? plannedDuration;
 
   int get totalCount => pendingCount + doneCount;
 
