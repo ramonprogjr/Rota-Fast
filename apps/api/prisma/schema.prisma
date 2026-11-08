@@ -1,0 +1,478 @@
+// Rota Max API — fonte única das migrations (Prisma + SQL bruto para PostGIS e RLS).
+// Regras:
+// - UUID em tudo. Entidades sincronizadas recebem o UUID gerado no aparelho.
+// - Datas em timestamptz (UTC). Colunas snake_case no banco, camelCase no código.
+// - Entidades sincronizadas têm user_id, version, field_versions e deleted_at
+//   (exclusão lógica = tombstone para o pull).
+// - Colunas geography são GERADAS a partir de latitude/longitude (ver a migration).
+//   O Prisma não lê nem escreve essas colunas.
+// - Nova mudança de estrutura: `prisma migrate dev --create-only`, revisar o SQL
+//   (o Prisma não conhece colunas geradas, índices parciais nem RLS) e commitar.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Plataforma
+// ---------------------------------------------------------------------------
+
+/// Perfil do usuário. id = auth.users.id (sub do JWT do Supabase Auth).
+model User {
+  id        String    @id @db.Uuid
+  email     String?
+  name      String?
+  country   String    @default("BR") @db.Char(2)
+  locale    String    @default("pt-BR")
+  timezone  String    @default("America/Sao_Paulo")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  devices        Device[]
+  memberships    Membership[]
+  subscriptions  Subscription[]
+  deliveries     Delivery[]
+  routes         Route[]
+  routeStops     RouteStop[]
+  deliveryEvents DeliveryEvent[]
+  routePlans     RoutePlan[]
+  vehicles       Vehicle[]
+  oilChanges     OilChange[]
+  shifts         Shift[]
+  baseLocations  BaseLocation[]
+
+  @@map("users")
+}
+
+/// Aparelho do usuário. id gerado no app na primeira execução.
+model Device {
+  id         String    @id @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  platform   String
+  model      String?
+  osVersion  String?   @map("os_version")
+  appVersion String?   @map("app_version")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("devices")
+}
+
+/// Empresa/equipe (preparado; a v1 é só do motorista individual).
+model Organization {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  ownerId   String    @map("owner_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  memberships   Membership[]
+  subscriptions Subscription[]
+
+  @@index([ownerId])
+  @@map("organizations")
+}
+
+/// Papel do usuário numa organização: owner | admin | driver.
+model Membership {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  role           String   @default("driver")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+/// Planos (monetização preparada e desligada). Semente: free (ativo) e pro (inativo).
+model Plan {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code       String   @unique
+  name       String
+  priceCents Int      @default(0) @map("price_cents")
+  currency   String   @default("BRL") @db.Char(3)
+  interval   String   @default("month")
+  limits     Json     @default("{}")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+/// Assinatura de um usuário (ou organização). Sem linha = plano free.
+model Subscription {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String?   @map("user_id") @db.Uuid
+  organizationId     String?   @map("organization_id") @db.Uuid
+  planId             String    @map("plan_id") @db.Uuid
+  status             String    @default("active")
+  currentPeriodStart DateTime? @map("current_period_start") @db.Timestamptz(3)
+  currentPeriodEnd   DateTime? @map("current_period_end") @db.Timestamptz(3)
+  provider           String?
+  providerRef        String?   @map("provider_ref")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan          @relation(fields: [planId], references: [id])
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("subscriptions")
+}
+
+/// Pagamentos (preparado; nenhuma integração na v1).
+model Payment {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscriptionId String    @map("subscription_id") @db.Uuid
+  userId         String?   @map("user_id") @db.Uuid
+  amountCents    Int       @map("amount_cents")
+  currency       String    @default("BRL") @db.Char(3)
+  status         String    @default("pending")
+  provider       String?
+  providerRef    String?   @map("provider_ref")
+  paidAt         DateTime? @map("paid_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([userId])
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// Domínio sincronizado (espelha o SQLite do app)
+// ---------------------------------------------------------------------------
+
+model Delivery {
+  id                String                                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                                 @map("user_id") @db.Uuid
+  orderNumber       String?                                @map("order_number")
+  packageId         String?                                @map("package_id")
+  customerName      String                                 @map("customer_name")
+  phone             String?
+  address           String
+  number            String?
+  complement        String?
+  neighborhood      String?
+  postalCode        String?                                @map("postal_code")
+  city              String
+  state             String?
+  latitude          Float?
+  longitude         Float?
+  /// Gerada a partir de latitude/longitude (PostGIS). Somente leitura.
+  location          Unsupported("geography(Point,4326)")?
+  locationConfirmed Boolean                                @default(false) @map("location_confirmed")
+  value             Float?
+  notes             String?
+  priority          String                                 @default("normal")
+  status            String                                 @default("PENDING")
+  failureReason     String?                                @map("failure_reason")
+  attempts          Int                                    @default(0)
+  deliveredAt       DateTime?                              @map("delivered_at") @db.Timestamptz(3)
+  version           BigInt                                 @default(1)
+  fieldVersions     Json                                   @default("{}") @map("field_versions")
+  createdAt         DateTime                               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                               @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt         DateTime?                              @map("deleted_at") @db.Timestamptz(3)
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stops  RouteStop[]
+  events DeliveryEvent[]
+
+  @@index([userId, status])
+  @@index([userId, updatedAt])
+  @@index([createdAt])
+  @@map("deliveries")
+}
+
+model Route {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  name             String?
+  status           String    @default("draft")
+  originLat        Float?    @map("origin_lat")
+  originLng        Float?    @map("origin_lng")
+  endLat           Float?    @map("end_lat")
+  endLng           Float?    @map("end_lng")
+  estimatedKm      Float?    @map("estimated_km")
+  estimatedMinutes Int?      @map("estimated_minutes")
+  navApp           String?   @map("nav_app")
+  manuallyEdited   Boolean   @default(false) @map("manually_edited")
+  startedAt        DateTime? @map("started_at") @db.Timestamptz(3)
+  completedAt      DateTime? @map("completed_at") @db.Timestamptz(3)
+  version          BigInt    @default(1)
+  fieldVersions    Json      @default("{}") @map("field_versions")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stops RouteStop[]
+  plans RoutePlan[]
+
+  @@index([userId, status])
+  @@index([userId, updatedAt])
+  @@index([createdAt])
+  @@map("routes")
+}
+
+/// Parada de uma rota. Uma entrega pode aparecer em mais de uma rota ao longo do tempo.
+/// Único (route_id, delivery_id) entre as não excluídas (índice parcial na migration).
+model RouteStop {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  routeId       String    @map("route_id") @db.Uuid
+  deliveryId    String    @map("delivery_id") @db.Uuid
+  position      Int
+  locked        Boolean   @default(false)
+  /// Índice 0-based entre as paradas abertas (alfinete). Vale mais que locked.
+  fixedPosition Int?      @map("fixed_position")
+  version       BigInt    @default(1)
+  fieldVersions Json      @default("{}") @map("field_versions")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route    Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([routeId, position])
+  @@index([deliveryId])
+  @@index([userId, updatedAt])
+  @@map("route_stops")
+}
+
+/// Histórico da entrega: troca de status (kind=status) ou edição (kind=edit). Imutável.
+model DeliveryEvent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  deliveryId    String    @map("delivery_id") @db.Uuid
+  kind          String    @default("status")
+  fromStatus    String?   @map("from_status")
+  toStatus      String    @map("to_status")
+  reason        String?
+  note          String?
+  changedFields Json?     @map("changed_fields")
+  latitude      Float?
+  longitude     Float?
+  occurredAt    DateTime  @map("occurred_at") @db.Timestamptz(3)
+  deviceId      String?   @map("device_id") @db.Uuid
+  version       BigInt    @default(1)
+  fieldVersions Json      @default("{}") @map("field_versions")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId, occurredAt])
+  @@index([userId, updatedAt])
+  @@index([createdAt])
+  @@map("delivery_events")
+}
+
+/// Economia de cada "Organizar rota".
+model RoutePlan {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  routeId          String    @map("route_id") @db.Uuid
+  stops            Int
+  baselineKm       Float     @map("baseline_km")
+  baselineMinutes  Int       @map("baseline_minutes")
+  optimizedKm      Float     @map("optimized_km")
+  optimizedMinutes Int       @map("optimized_minutes")
+  version          BigInt    @default(1)
+  fieldVersions    Json      @default("{}") @map("field_versions")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([routeId])
+  @@index([userId, updatedAt])
+  @@map("route_plans")
+}
+
+model Vehicle {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  name            String
+  type            String
+  plate           String?
+  fuelType        String    @default("gasoline") @map("fuel_type")
+  kmPerLiter      Float     @map("km_per_liter")
+  fuelPrice       Float     @map("fuel_price")
+  avgSpeedKmh     Float     @map("avg_speed_kmh")
+  odometerKm      Float     @default(0) @map("odometer_km")
+  oilIntervalKm   Float     @map("oil_interval_km")
+  lastOilChangeKm Float     @default(0) @map("last_oil_change_km")
+  isActive        Boolean   @default(false) @map("is_active")
+  version         BigInt    @default(1)
+  fieldVersions   Json      @default("{}") @map("field_versions")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oilChanges OilChange[]
+  shifts     Shift[]
+
+  @@index([userId, updatedAt])
+  @@map("vehicles")
+}
+
+model OilChange {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  vehicleId     String    @map("vehicle_id") @db.Uuid
+  odometerKm    Float     @map("odometer_km")
+  changedAt     DateTime  @map("changed_at") @db.Timestamptz(3)
+  note          String?
+  version       BigInt    @default(1)
+  fieldVersions Json      @default("{}") @map("field_versions")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, changedAt])
+  @@index([userId, updatedAt])
+  @@map("oil_changes")
+}
+
+/// Turno de GPS. Os pontos NÃO viram linhas: `track` guarda um resumo
+/// (polyline codificada e simplificada, contagem, início/fim, bbox).
+model Shift {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  vehicleId     String?   @map("vehicle_id") @db.Uuid
+  startedAt     DateTime  @map("started_at") @db.Timestamptz(3)
+  endedAt       DateTime? @map("ended_at") @db.Timestamptz(3)
+  gpsKm         Float     @default(0) @map("gps_km")
+  odometerStart Float?    @map("odometer_start")
+  odometerEnd   Float?    @map("odometer_end")
+  track         Json?
+  version       BigInt    @default(1)
+  fieldVersions Json      @default("{}") @map("field_versions")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startedAt])
+  @@index([userId, updatedAt])
+  @@map("shifts")
+}
+
+/// Ponto de saída do motorista.
+model BaseLocation {
+  id            String                                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String                                 @map("user_id") @db.Uuid
+  name          String
+  address       String
+  city          String
+  latitude      Float?
+  longitude     Float?
+  /// Gerada a partir de latitude/longitude (PostGIS). Somente leitura.
+  location      Unsupported("geography(Point,4326)")?
+  isDefault     Boolean                                @default(true) @map("is_default")
+  version       BigInt                                 @default(1)
+  fieldVersions Json                                   @default("{}") @map("field_versions")
+  createdAt     DateTime                               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime                               @default(now()) @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime?                              @map("deleted_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("base_locations")
+}
+
+// ---------------------------------------------------------------------------
+// Sincronização e auditoria
+// ---------------------------------------------------------------------------
+
+/// Cada operação recebida em /v1/sync/push. id = operation_id gerado no aparelho
+/// (chave de idempotência). Conflitos e recusas ficam guardados aqui.
+model SyncOperation {
+  id              String    @id @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  deviceId        String    @map("device_id") @db.Uuid
+  entityType      String    @map("entity_type")
+  entityId        String    @map("entity_id") @db.Uuid
+  operationType   String    @map("operation_type")
+  baseVersion     BigInt?   @map("base_version")
+  payload         Json
+  status          String
+  reason          String?
+  result          Json
+  clientCreatedAt DateTime? @map("client_created_at") @db.Timestamptz(3)
+  receivedAt      DateTime  @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  @@index([userId, receivedAt])
+  @@index([entityId])
+  @@index([userId, status])
+  @@map("sync_operations")
+}
+
+/// Log de mudanças por usuário. `seq` é o cursor monotônico do /v1/sync/pull.
+model SyncChange {
+  seq        BigInt   @id @default(autoincrement())
+  userId     String   @map("user_id") @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  version    BigInt
+  operation  String
+  changedAt  DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  @@index([userId, seq])
+  @@map("sync_changes")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id") @db.Uuid
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}

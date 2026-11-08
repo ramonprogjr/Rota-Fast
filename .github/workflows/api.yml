@@ -1,0 +1,67 @@
+name: API
+
+on:
+  push:
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api.yml'
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      - name: Prisma validate
+        run: npm run prisma:validate
+        env:
+          # Só para o validate ler o schema; nenhum banco é acessado.
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Testes unitários
+        run: npm test -- --ci
+
+      - name: Testes e2e
+        run: npm run test:e2e -- --ci
+
+      - name: OpenAPI atualizado
+        run: |
+          npm run openapi:export
+          git diff --exit-code -- ../../docs/api/openapi.json || {
+            echo "docs/api/openapi.json está desatualizado: rode 'npm run openapi:export' e commite.";
+            exit 1;
+          }
