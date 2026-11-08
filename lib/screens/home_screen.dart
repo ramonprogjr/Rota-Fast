@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rota_max/core/theme/app_theme.dart';
 import 'package:rota_max/core/utils/haversine.dart';
@@ -16,6 +17,7 @@ import 'package:rota_max/screens/settings_screen.dart';
 import 'package:rota_max/screens/shift_report_screen.dart';
 import 'package:rota_max/widgets/day_panel.dart';
 import 'package:rota_max/widgets/delivery_card.dart';
+import 'package:rota_max/widgets/one_line_label.dart';
 import 'package:rota_max/widgets/failure_sheet.dart';
 import 'package:rota_max/widgets/location_status_banner.dart';
 import 'package:rota_max/widgets/nav_app_sheet.dart';
@@ -119,7 +121,7 @@ class HomeScreen extends StatelessWidget {
                             ? null
                             : () => state.organizeRoute(useGps: true),
                         icon: const Icon(Icons.route),
-                        label: Text(
+                        label: OneLineLabel(
                           state.busy ? 'Organizando...' : 'Organizar rota',
                         ),
                       ),
@@ -135,7 +137,7 @@ class HomeScreen extends StatelessWidget {
                               ? Icons.play_arrow
                               : Icons.stop,
                         ),
-                        label: Text(
+                        label: OneLineLabel(
                           state.activeShift == null
                               ? 'Iniciar turno'
                               : 'Encerrar turno',
@@ -460,9 +462,9 @@ class _OilBanner extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '${vehicle.name}: faltam ${vehicle.oilRemainingKm.round()} km '
+                '${vehicle.name}: faltam ${_km(vehicle.oilRemainingKm)} km '
                 'para a troca de óleo (a cada '
-                '${vehicle.oilIntervalKm.round()} km).',
+                '${_km(vehicle.oilIntervalKm)} km).',
                 style: const TextStyle(
                   color: AppColors.warning,
                   fontWeight: FontWeight.w700,
@@ -475,3 +477,6 @@ class _OilBanner extends StatelessWidget {
     );
   }
 }
+
+String _km(double value) =>
+    NumberFormat.decimalPattern('pt_BR').format(value.round());

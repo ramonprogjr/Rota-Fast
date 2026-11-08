@@ -7,6 +7,7 @@ import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/base_location.dart';
 import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/services/geocoding_service.dart';
+import 'package:rota_max/services/routing/route_engine.dart';
 
 class FakeGeocodingService extends GeocodingService {
   FakeGeocodingService({this.result})
@@ -58,6 +59,7 @@ AppState buildTestState({
           ),
     ),
     settingsRepository: MemorySettingsRepository(),
+    routeEngine: DefaultRouteEngine(useIsolate: false),
     geocodingService: geocoder ?? FakeGeocodingService(result: geo),
     vehicleRepository: vehicles,
   );

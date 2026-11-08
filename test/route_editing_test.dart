@@ -135,18 +135,19 @@ void main() {
       expect(names(state.pending), ['Ana', 'Bia', 'Caio']);
       expect(state.message, contains('Rota organizada'));
       final route = state.activeRoute!;
-      expect(route.estimatedKm, closeTo(3.34, 0.05));
+      // 3,34 km em linha reta × 1,3 (fator de ruas da estimativa local).
+      expect(route.estimatedKm, closeTo(4.34, 0.05));
       expect(route.manuallyEdited, isFalse);
 
       final plans = await state.plansOfRoute(route.id!);
       expect(plans, hasLength(1));
       expect(plans.single.stops, 3);
-      // Cadastro: Caio (3,3) -> Ana (2,2) -> Bia (1,1) = 6,7 km.
-      expect(plans.single.baselineKm, closeTo(6.67, 0.05));
-      expect(plans.single.savedKm, closeTo(3.33, 0.05));
+      // Cadastro: Caio (3,3) -> Ana (2,2) -> Bia (1,1) = 6,7 km × 1,3.
+      expect(plans.single.baselineKm, closeTo(8.67, 0.05));
+      expect(plans.single.savedKm, closeTo(4.33, 0.05));
 
-      expect(state.summary.estimatedKm, closeTo(3.34, 0.05));
-      expect(state.summary.plannedKm, closeTo(3.34, 0.05));
+      expect(state.summary.estimatedKm, closeTo(4.34, 0.05));
+      expect(state.summary.plannedKm, closeTo(4.34, 0.05));
 
       // Ordem manual pior: o painel mostra o que vai ser percorrido.
       await state.reorderStops([
@@ -154,7 +155,7 @@ void main() {
         byName(state, 'Ana'),
         byName(state, 'Bia'),
       ]);
-      expect(state.summary.estimatedKm, closeTo(6.67, 0.05));
+      expect(state.summary.estimatedKm, closeTo(8.67, 0.05));
       expect(state.summary.pendingCount, 3);
     });
 
@@ -164,7 +165,7 @@ void main() {
       await state.organizeRoute();
       await state.markDelivered(byName(state, 'Ana'));
       // De Ana: Bia (1,1) + Caio (1,1).
-      expect(state.summary.estimatedKm, closeTo(2.22, 0.05));
+      expect(state.summary.estimatedKm, closeTo(2.22 * 1.3, 0.05));
       expect(state.summary.doneCount, 1);
     });
   });
@@ -262,7 +263,9 @@ void main() {
       expect(await state.toggleLock(byName(state, 'Caio')), isTrue);
       expect(byName(state, 'Caio').locked, isTrue);
       await state.organizeRoute();
-      expect(names(state.pending), ['Caio', 'Ana', 'Bia']);
+      // Caio fica em 1º; dali, voltar por Bia e depois Ana é o mais
+      // curto (todas na mesma linha: base, Ana, Bia, Caio).
+      expect(names(state.pending), ['Caio', 'Bia', 'Ana']);
       expect(state.message, contains('Travas respeitadas'));
 
       await state.toggleLock(byName(state, 'Caio'));

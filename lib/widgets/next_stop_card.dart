@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rota_max/core/theme/app_theme.dart';
 import 'package:rota_max/core/utils/haversine.dart';
 import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/widgets/one_line_label.dart';
 
 /// Destaque da próxima parada, com as três ações mais usadas na rua.
 class NextStopCard extends StatelessWidget {
@@ -108,7 +109,7 @@ class NextStopCard extends StatelessWidget {
                       ),
                       onPressed: onDelivered,
                       icon: const Icon(Icons.check),
-                      label: const Text('Entregue'),
+                      label: const OneLineLabel('Entregue'),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -119,7 +120,7 @@ class NextStopCard extends StatelessWidget {
                         Icons.report_outlined,
                         color: AppColors.danger,
                       ),
-                      label: const Text('Não entregue'),
+                      label: const OneLineLabel('Não entregue'),
                     ),
                   ),
                 ],

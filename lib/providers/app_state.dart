@@ -26,7 +26,8 @@ import 'package:rota_max/services/geocoding_service.dart';
 import 'package:rota_max/services/location_service.dart';
 import 'package:rota_max/services/maps_service.dart';
 import 'package:rota_max/services/route_locks.dart';
-import 'package:rota_max/services/route_optimizer.dart';
+import 'package:rota_max/services/routing/route_engine.dart';
+import 'package:rota_max/services/routing/route_plan_input.dart';
 import 'package:rota_max/services/shift_tracker.dart';
 
 class BatchImportResult {
@@ -72,11 +73,12 @@ class AppState extends ChangeNotifier {
     required GeocodingService geocodingService,
     LocationService locationService = const LocationService(),
     MapsService mapsService = const MapsService(),
-    this._optimizer = const RouteOptimizer(),
     ShiftRepository? shiftRepository,
     VehicleRepository? vehicleRepository,
     ErrorLogRepository? errorLogRepository,
+    RouteEngine? routeEngine,
   })  : _errorLog = errorLogRepository,
+        _engine = routeEngine ?? DefaultRouteEngine.fromEnvironment(),
         _deliveries = deliveryRepository,
         _vehicles = vehicleRepository ?? MemoryVehicleRepository(),
         _baseLocations = baseLocationRepository,
@@ -97,7 +99,9 @@ class AppState extends ChangeNotifier {
   final VehicleRepository _vehicles;
   final LocationService _location;
   final MapsService maps;
-  final RouteOptimizer _optimizer;
+  /// Motor de rotas (malha viária ORS ou estimativa local). Uma instância
+  /// só, para o cache da matriz durar entre os cálculos.
+  final RouteEngine _engine;
   final ErrorLogRepository? _errorLog;
   late final ShiftTracker _tracker;
 
@@ -235,7 +239,10 @@ class AppState extends ChangeNotifier {
   ShiftSummary get summary {
     final open = pending;
     final today = doneToday;
-    final km = routeDistanceKm(_remainingStart, open, end: _endPoint);
+    // Mesmo fator de ruas do motor de rotas, para o painel e a rota
+    // mostrarem km na mesma escala.
+    final km = routeDistanceKm(_remainingStart, open, end: _endPoint) *
+        AppConstants.roadFactor;
     final route = activeRoute;
     return ShiftSummary(
       pendingCount: open.length,
@@ -875,19 +882,36 @@ class AppState extends ChangeNotifier {
       return false;
     }
     final speed = vehicle.avgSpeedKmh;
-    // PONTO DE INTEGRAÇÃO do motor de rotas (agente A): trocar esta chamada
-    // pelo RouteEngine, passando locksOf(current) como StopConstraint
-    // (locked / fixedPosition). Enquanto isso, as travas são aplicadas
-    // depois por applyLocks.
-    final optimized = _optimizer.optimize(
-      origin: origin,
-      pending: current,
-      speedKmh: speed,
-    );
-    final ordered = applyLocks(optimized.ordered, current, locksOf(current));
     final end = _endPoint;
-    final km = routeDistanceKm(origin, ordered, end: end);
-    final duration = estimateTravelTime(km, speedKmh: speed);
+    final locks = locksOf(current);
+    // O motor nunca lança: sem chave, sem rede ou com falha, devolve a
+    // estimativa local (ou a ordem atual) com um aviso.
+    final result = await _engine.plan(
+      RoutingRequest(
+        origin: origin,
+        end: end,
+        stops: current,
+        constraints: {
+          for (final entry in locks.entries)
+            entry.key: StopConstraint(
+              deliveryId: entry.key,
+              locked: entry.value.locked,
+              fixedPosition: entry.value.fixedPosition,
+            ),
+        },
+        speedKmh: speed,
+        profile: profileFor(vehicle.type),
+      ),
+    );
+    // Sem localização / sem rota pelas ruas vão para o fim. applyLocks é
+    // só uma rede de segurança: o motor já respeita as travas.
+    final ordered = applyLocks(
+      [...result.ordered, ...result.unroutable],
+      current,
+      locks,
+    );
+    final km = result.totalKm;
+    final duration = result.totalTime;
 
     final route = await _deliveries.saveRouteOrder(
       ordered,
@@ -899,20 +923,34 @@ class AppState extends ChangeNotifier {
 
     if (!silent) {
       _pushUndo(_ids(current));
-      await _recordPlan(route, origin, current, km, duration, end);
+      await _recordPlan(route, result);
     }
     await refresh();
 
     if (!silent) {
-      final skipped = optimized.skippedWithoutCoords.length;
+      final skipped = result.unroutable.length;
       final unconfirmed = current
           .where((item) => item.hasCoordinates && !item.locationConfirmed)
           .length;
       final kmText = formatKm(km);
       final time = formatDuration(duration);
-      var text = skipped == 0
-          ? 'Rota organizada: $kmText · $time (estimativa em linha reta).'
-          : 'Rota organizada: $kmText · $time. $skipped endereço(s) sem localização ficaram no fim.';
+      var text = 'Rota organizada: $kmText · $time';
+      text += result.usedRoadNetwork
+          ? ' (pelas ruas).'
+          : ' (${result.warning ?? DefaultRouteEngine.estimatedWarning}).';
+      final savedMinutes =
+          (result.baselineTime - result.totalTime).inMinutes;
+      final savedKm = result.baselineKm - result.totalKm;
+      if (savedMinutes > 0 || savedKm >= 0.1) {
+        text += ' Economia: ${formatKm(savedKm < 0 ? 0 : savedKm)}'
+            '${savedMinutes > 0 ? ' e $savedMinutes min' : ''}'
+            ' em relação à ordem de cadastro.';
+      }
+      if (skipped > 0) {
+        text += ' $skipped endereço(s) sem rota ficaram no fim: '
+            '${result.unroutable.map((d) => d.displayName).take(3).join(', ')}'
+            '${skipped > 3 ? '…' : ''}.';
+      }
       if (unconfirmed > 0) {
         text += ' $unconfirmed ponto(s) ainda sem confirmação no mapa.';
       }
@@ -926,31 +964,18 @@ class AppState extends ChangeNotifier {
 
   /// Grava em `route_plans` quanto a rota economizou em relação à ordem de
   /// cadastro. Falhar aqui não desfaz a rota.
-  Future<void> _recordPlan(
-    DeliveryRoute route,
-    GeoPoint origin,
-    List<Delivery> stops,
-    double optimizedKm,
-    Duration optimized,
-    GeoPoint? end,
-  ) async {
-    if (route.id == null) {
+  Future<void> _recordPlan(DeliveryRoute route, RoutingResult result) async {
+    if (route.id == null || result.ordered.isEmpty) {
       return;
     }
     try {
-      final baseline = [...stops]
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      final baselineKm = routeDistanceKm(origin, baseline, end: end);
       await _deliveries.savePlan(
         routeId: route.id!,
-        stops: stops.where((item) => item.hasCoordinates).length,
-        baselineKm: baselineKm,
-        baselineMinutes: estimateTravelTime(
-          baselineKm,
-          speedKmh: vehicle.avgSpeedKmh,
-        ).inMinutes,
-        optimizedKm: optimizedKm,
-        optimizedMinutes: optimized.inMinutes,
+        stops: result.ordered.length,
+        baselineKm: result.baselineKm,
+        baselineMinutes: result.baselineTime.inMinutes,
+        optimizedKm: result.totalKm,
+        optimizedMinutes: result.totalTime.inMinutes,
       );
     } catch (error, stack) {
       await _report(error, stack, 'savePlan');
