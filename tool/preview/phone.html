@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rota Max no celular</title>
+  <style>
+    :root {
+      --bg: #0b0f18;
+      --panel: #141b2a;
+      --line: #243049;
+      --text: #eaf0ff;
+      --muted: #9aa6bf;
+      --primary: #2f7bff;
+      --ok: #2ecc71;
+      --warn: #ffb020;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 30% 20%, #16213a 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      flex-wrap: wrap;
+    }
+    .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .phone {
+      --w: 390px;
+      --h: 844px;
+      width: calc(var(--w) + 28px);
+      height: calc(var(--h) + 28px);
+      padding: 14px;
+      border-radius: 54px;
+      background: linear-gradient(145deg, #2a2f3a, #0f1218);
+      box-shadow: 0 0 0 2px #3a4050, 0 30px 80px rgba(0, 0, 0, .6),
+        inset 0 0 0 2px #000;
+      position: relative;
+      transition: width .25s, height .25s;
+    }
+    .phone::before { /* câmera */
+      content: "";
+      position: absolute;
+      top: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #05070b;
+      box-shadow: 0 0 0 2px #1b1f28;
+      z-index: 2;
+    }
+    .phone::after { /* botões laterais */
+      content: "";
+      position: absolute;
+      right: -4px;
+      top: 160px;
+      width: 4px;
+      height: 90px;
+      border-radius: 0 3px 3px 0;
+      background: #3a4050;
+    }
+    .screen {
+      width: var(--w);
+      height: var(--h);
+      border: 0;
+      border-radius: 40px;
+      background: #0f1420;
+      display: block;
+      overflow: hidden;
+    }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button[aria-pressed="true"] { border-color: var(--primary); background: #1b2b4d; }
+    aside {
+      max-width: 380px;
+      background: rgba(20, 27, 42, .85);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px 22px;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .tag { color: var(--muted); margin: 0 0 16px; }
+    h2 { font-size: 15px; margin: 18px 0 6px; color: var(--primary); }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 3px 0; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    kbd {
+      background: #0b0f18;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="phone" id="phone">
+      <iframe class="screen" id="app" src="index.html" title="Rota Max"></iframe>
+    </div>
+    <div class="controls" role="group" aria-label="Tamanho da tela">
+      <button data-w="360" data-h="780">Android pequeno</button>
+      <button data-w="390" data-h="844" aria-pressed="true">Padrão</button>
+      <button data-w="412" data-h="915">Android grande</button>
+      <button id="reload">Recomeçar</button>
+    </div>
+  </div>
+
+  <aside>
+    <h1>Rota Max</h1>
+    <p class="tag">Visualização local do app, no tamanho de um celular.</p>
+
+    <h2>Como usar</h2>
+    <ul>
+      <li>Clique e arraste como se fosse o dedo. A rolagem usa a roda do mouse.</li>
+      <li>Já há <b>8 entregas de exemplo</b> em São Bernardo, cadastradas fora de ordem. Toque em <b>Organizar rota</b> para ver a economia.</li>
+      <li>Teste <b>Editar ordem</b>, <b>Mapa</b>, <b>Não entregue</b>, a aba <b>Veículos</b> e a troca de óleo.</li>
+      <li><b>Recomeçar</b> volta aos dados de exemplo; nada fica salvo.</li>
+    </ul>
+
+    <h2>Funciona aqui</h2>
+    <ul class="ok">
+      <li>Todas as telas e fluxos de rota</li>
+      <li>Mapa (com internet), busca de endereço e postos próximos</li>
+      <li>Localização, se o navegador permitir</li>
+    </ul>
+
+    <h2>Só no celular</h2>
+    <ul class="warn">
+      <li>Foto de etiquetas (leitura por câmera)</li>
+      <li>Km do turno com GPS em segundo plano</li>
+      <li>Abrir Waze, Google Maps e WhatsApp como apps</li>
+    </ul>
+
+    <p class="tag" style="margin-top:18px">Atualizar o site depois de mudanças: rode <kbd>tool\preview.ps1</kbd> de novo.</p>
+  </aside>
+
+  <script>
+    const phone = document.getElementById('phone');
+    const app = document.getElementById('app');
+    document.querySelectorAll('button[data-w]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        phone.style.setProperty('--w', btn.dataset.w + 'px');
+        phone.style.setProperty('--h', btn.dataset.h + 'px');
+        document.querySelectorAll('button[data-w]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.getElementById('reload').addEventListener('click', () => {
+      app.src = 'index.html?t=' + Date.now();
+    });
+  </script>
+</body>
+</html>
