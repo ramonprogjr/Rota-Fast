@@ -9,12 +9,15 @@ import 'package:rota_max/screens/add_delivery_screen.dart';
 import 'package:rota_max/screens/confirm_location_screen.dart';
 import 'package:rota_max/screens/delivery_detail_screen.dart';
 import 'package:rota_max/screens/paste_addresses_screen.dart';
+import 'package:rota_max/screens/route_map_screen.dart';
 import 'package:rota_max/screens/scan_tickets_screen.dart';
 import 'package:rota_max/screens/settings_screen.dart';
 import 'package:rota_max/screens/shift_report_screen.dart';
 import 'package:rota_max/widgets/day_panel.dart';
 import 'package:rota_max/widgets/delivery_card.dart';
 import 'package:rota_max/widgets/failure_sheet.dart';
+import 'package:rota_max/widgets/location_status_banner.dart';
+import 'package:rota_max/widgets/nav_app_sheet.dart';
 import 'package:rota_max/widgets/next_stop_card.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -32,6 +35,18 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Rota Max'),
         actions: [
+          IconButton(
+            key: const Key('open-route-map'),
+            tooltip: 'Mapa',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const RouteMapScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.map_outlined),
+          ),
           IconButton(
             tooltip: 'Linha do tempo do turno',
             onPressed: () => _openReport(context),
@@ -56,6 +71,16 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               children: [
                 DayPanel(state: state),
+                if (state.location != null && !state.location!.isOk) ...[
+                  const SizedBox(height: 12),
+                  LocationStatusBanner(
+                    reading: state.location,
+                    busy: state.locating,
+                    onRetry: () => state.refreshLocation(retry: true),
+                    onOpenLocationSettings: state.openLocationSettings,
+                    onOpenAppSettings: state.openAppSettings,
+                  ),
+                ],
                 if (state.message != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -79,7 +104,7 @@ class HomeScreen extends StatelessWidget {
                     total: pending.length,
                     distanceKm: state.distanceFromPrevious(next),
                     onTap: () => _openDetail(context, next),
-                    onNavigate: () => _navigate(context, state, next),
+                    onNavigate: () => navigateToDelivery(context, state, next),
                     onDelivered: () => state.markDelivered(next),
                     onFailed: () => _markFailed(context, state, next),
                   ),
@@ -267,22 +292,6 @@ class HomeScreen extends StatelessWidget {
     );
     if (confirmed != null) {
       await state.confirmLocation(delivery, confirmed);
-    }
-  }
-
-  Future<void> _navigate(
-    BuildContext context,
-    AppState state,
-    Delivery delivery,
-  ) async {
-    final ok = await state.navigateTo(delivery);
-    if (!context.mounted) {
-      return;
-    }
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível abrir a navegação.')),
-      );
     }
   }
 
