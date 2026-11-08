@@ -13,6 +13,14 @@ class AppConstants {
       'https://nominatim.openstreetmap.org/search';
   static const nominatimMinInterval = Duration(milliseconds: 1100);
   static const motoSpeedKmh = 28.0;
+
+  /// Chave da OpenRouteService. Vem de `--dart-define=ORS_API_KEY=...`;
+  /// vazia = roteirização só com estimativa local.
+  static const orsApiKey = String.fromEnvironment('ORS_API_KEY');
+  static const orsBaseUrl = 'https://api.openrouteservice.org/v2/matrix';
+
+  /// Multiplicador da linha reta para estimar a distância por ruas.
+  static const roadFactor = 1.3;
   static const splashDuration = Duration(seconds: 2);
   static const oilIntervalKm = 1000.0;
   static const oilWarnBelowKm = 100.0;

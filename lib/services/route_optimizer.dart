@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:rota_max/core/constants/app_constants.dart';
 import 'package:rota_max/core/utils/haversine.dart';
 import 'package:rota_max/models/delivery.dart';
 import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/shift_summary.dart';
+import 'package:rota_max/services/routing/haversine_matrix.dart';
+import 'package:rota_max/services/routing/route_solver.dart';
 
 class OptimizedRoute {
   const OptimizedRoute({
@@ -21,6 +25,8 @@ class OptimizedRoute {
 class RouteOptimizer {
   const RouteOptimizer();
 
+  /// Fator legado de prioridade (multiplica a distância). Mantido por
+  /// compatibilidade; a otimização usa `priorityPenaltyWeight`.
   static double priorityWeight(DeliveryPriority priority) {
     switch (priority) {
       case DeliveryPriority.urgent:
@@ -32,56 +38,67 @@ class RouteOptimizer {
     }
   }
 
+  /// Ordem sugerida pela estimativa local (linha reta × fator de ruas),
+  /// com vizinho mais próximo + 2-opt/Or-opt. Síncrono e sem rede; o motor
+  /// completo (malha viária, isolate, restrições) é `DefaultRouteEngine`.
+  ///
+  /// `totalKm` já inclui o fator de ruas ([AppConstants.roadFactor]).
+  /// Entregas sem coordenada vão para o fim de [OptimizedRoute.ordered].
   OptimizedRoute optimize({
     required GeoPoint origin,
     required List<Delivery> pending,
     double speedKmh = AppConstants.motoSpeedKmh,
   }) {
     final withCoords = pending.where((item) => item.hasCoordinates).toList();
-    final withoutCoords =
-        pending.where((item) => !item.hasCoordinates).toList();
+    final withoutCoords = pending
+        .where((item) => !item.hasCoordinates)
+        .toList();
 
-    final remaining = [...withCoords];
-    final ordered = <Delivery>[];
-    var currentLat = origin.latitude;
-    var currentLng = origin.longitude;
-    var totalKm = 0.0;
-
-    while (remaining.isNotEmpty) {
-      var bestIndex = 0;
-      var bestScore = double.infinity;
-      var bestDistance = 0.0;
-      for (var i = 0; i < remaining.length; i++) {
-        final item = remaining[i];
-        final distance = haversineKm(
-          currentLat,
-          currentLng,
-          item.latitude!,
-          item.longitude!,
-        );
-        final score = distance * priorityWeight(item.priority);
-        if (score < bestScore) {
-          bestScore = score;
-          bestIndex = i;
-          bestDistance = distance;
-        }
+    final estimate = HaversineMatrix(speedKmh);
+    final points = [
+      origin,
+      for (final item in withCoords) GeoPoint(item.latitude!, item.longitude!),
+    ];
+    final n = withCoords.length;
+    final m = points.length;
+    final seconds = Float64List(m * m);
+    final meters = Float64List(m * m);
+    for (var a = 0; a < m; a++) {
+      for (var b = a + 1; b < m; b++) {
+        final dist = estimate.meters(points[a], points[b]);
+        final time = estimate.secondsFor(dist);
+        meters[a * m + b] = dist;
+        meters[b * m + a] = dist;
+        seconds[a * m + b] = time;
+        seconds[b * m + a] = time;
       }
-      final next = remaining.removeAt(bestIndex);
-      ordered.add(next);
-      totalKm += bestDistance;
-      currentLat = next.latitude!;
-      currentLng = next.longitude!;
     }
+    final order = solveRoute(
+      RouteSolverInput(
+        stopCount: n,
+        seconds: seconds,
+        hasEnd: false,
+        weights: [
+          for (final item in withCoords) priorityPenaltyWeight(item.priority),
+        ],
+        fixedSlots: List<int>.filled(n, -1),
+        initialOrder: List<int>.generate(n, (i) => i),
+        timeBudgetMs: 100,
+      ),
+    );
 
-    ordered.addAll(withoutCoords);
+    var totalMeters = 0.0;
+    var prev = 0;
+    for (final stop in order) {
+      totalMeters += meters[prev * m + stop + 1];
+      prev = stop + 1;
+    }
+    final totalKm = totalMeters / 1000;
 
     return OptimizedRoute(
-      ordered: ordered,
+      ordered: [for (final i in order) withCoords[i], ...withoutCoords],
       totalKm: totalKm,
-      estimatedDuration: estimateTravelTime(
-        totalKm,
-        speedKmh: speedKmh,
-      ),
+      estimatedDuration: estimateTravelTime(totalKm, speedKmh: speedKmh),
       skippedWithoutCoords: withoutCoords,
     );
   }
@@ -104,13 +121,8 @@ class RouteOptimizer {
     var estimatedKm = 0.0;
     var estimated = Duration.zero;
     if (origin != null) {
-      final route = optimize(
-        origin: origin,
-        pending: pending,
-        speedKmh: speedKmh,
-      );
-      estimatedKm = route.totalKm;
-      estimated = route.estimatedDuration;
+      estimatedKm = remainingKm(origin: origin, open: pending);
+      estimated = estimateTravelTime(estimatedKm, speedKmh: speedKmh);
     }
 
     final earnings = doneToday.fold<double>(
@@ -126,5 +138,42 @@ class RouteOptimizer {
       earnings: earnings,
       doneKm: 0,
     );
+  }
+
+  /// Km restantes percorrendo as paradas abertas na ordem salva
+  /// (`routeOrder`; sem ordem vão para o fim, na ordem recebida) a partir de
+  /// [origin], com o fator de ruas. Barato: não otimiza nada.
+  static double remainingKm({
+    required GeoPoint origin,
+    required List<Delivery> open,
+    double roadFactor = AppConstants.roadFactor,
+  }) {
+    final indexed =
+        [
+          for (var i = 0; i < open.length; i++)
+            if (open[i].hasCoordinates) (i, open[i]),
+        ]..sort((a, b) {
+          final ra = a.$2.routeOrder;
+          final rb = b.$2.routeOrder;
+          if (ra != null && rb != null && ra != rb) {
+            return ra.compareTo(rb);
+          }
+          if (ra != null && rb == null) {
+            return -1;
+          }
+          if (ra == null && rb != null) {
+            return 1;
+          }
+          return a.$1.compareTo(b.$1);
+        });
+    var km = 0.0;
+    var lat = origin.latitude;
+    var lng = origin.longitude;
+    for (final (_, item) in indexed) {
+      km += haversineKm(lat, lng, item.latitude!, item.longitude!);
+      lat = item.latitude!;
+      lng = item.longitude!;
+    }
+    return km * roadFactor;
   }
 }
