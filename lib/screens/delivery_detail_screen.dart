@@ -393,7 +393,7 @@ class _EventTimeline extends StatelessWidget {
                   color: AppColors.forStatus(event.to),
                 ),
                 title: Text(
-                  event.from == null ? 'Cadastrada' : event.to.label,
+                  event.title,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(

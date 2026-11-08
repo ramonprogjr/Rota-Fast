@@ -32,10 +32,16 @@ class AppDatabase {
   }
 
   Future<Database> _openDefault() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final db = await open(p.join(dir.path, fileName));
-    _db = db;
-    return db;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final db = await open(p.join(dir.path, fileName));
+      _db = db;
+      return db;
+    } catch (_) {
+      // Deixa o "Tentar de novo" abrir do zero.
+      _opening = null;
+      rethrow;
+    }
   }
 
   /// Abre (ou cria) o banco em [path]. [factory] permite usar o sqflite_ffi
@@ -79,6 +85,7 @@ class AppDatabase {
         'geocode_cache',
         'settings',
         'base_location',
+        'error_log',
       ]) {
         await txn.delete(table);
       }
@@ -123,16 +130,21 @@ class AppDatabase {
         attempts INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        delivered_at TEXT
+        delivered_at TEXT,
+        deleted_at TEXT
       )
     ''');
     await txn.execute('''
       CREATE TABLE routes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
         status TEXT NOT NULL DEFAULT 'active'
           CHECK (status IN ('draft','active','completed')),
         origin_lat REAL,
         origin_lng REAL,
+        end_lat REAL,
+        end_lng REAL,
+        manually_edited INTEGER NOT NULL DEFAULT 0,
         estimated_km REAL,
         estimated_minutes INTEGER,
         nav_app TEXT,
@@ -147,6 +159,8 @@ class AppDatabase {
         route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
         delivery_id INTEGER NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
         position INTEGER NOT NULL,
+        locked INTEGER NOT NULL DEFAULT 0,
+        fixed_position INTEGER,
         UNIQUE (route_id, delivery_id)
       )
     ''');
@@ -154,12 +168,15 @@ class AppDatabase {
       CREATE TABLE delivery_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         delivery_id INTEGER NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL DEFAULT 'status'
+          CHECK (kind IN ('status','edit')),
         from_status TEXT,
         to_status TEXT NOT NULL,
         reason TEXT,
         note TEXT,
         latitude REAL,
         longitude REAL,
+        changed_fields TEXT,
         created_at TEXT NOT NULL
       )
     ''');
@@ -236,6 +253,16 @@ class AppDatabase {
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
         recorded_at TEXT NOT NULL
+      )
+    ''');
+    // Últimos erros do app (sem dados pessoais), para o relatório de erros.
+    await txn.execute('''
+      CREATE TABLE error_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        error_type TEXT NOT NULL,
+        location TEXT,
+        created_at TEXT NOT NULL
       )
     ''');
     await txn.execute(
