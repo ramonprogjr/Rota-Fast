@@ -62,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final baseLocation = state.baseLocation;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ponto de saída e ajustes')),
+      appBar: AppBar(title: const Text('Ajustes')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

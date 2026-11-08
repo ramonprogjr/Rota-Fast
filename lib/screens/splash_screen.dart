@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:rota_max/core/constants/app_constants.dart';
 import 'package:rota_max/core/theme/app_theme.dart';
 import 'package:rota_max/providers/app_state.dart';
-import 'package:rota_max/screens/home_screen.dart';
+import 'package:rota_max/screens/main_shell.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
+      MaterialPageRoute<void>(builder: (_) => const MainShell()),
     );
   }
 
@@ -38,15 +38,15 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('RM', style: TextStyle(fontSize: 64, fontWeight: FontWeight.w800, color: AppColors.cream)),
-              SizedBox(height: 12),
+              _Logo(),
+              SizedBox(height: 20),
               Text(
                 'ROTA MAX',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
-                  color: AppColors.cream,
+                  color: AppColors.text,
                 ),
               ),
               SizedBox(height: 8),
@@ -57,6 +57,23 @@ class _SplashScreenState extends State<SplashScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Logo extends StatelessWidget {
+  const _Logo();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Image.asset(
+        'assets/app_icon_rm.png',
+        width: 128,
+        height: 128,
+        semanticLabel: 'Rota Max',
       ),
     );
   }

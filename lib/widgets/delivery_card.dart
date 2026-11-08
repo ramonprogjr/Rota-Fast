@@ -44,20 +44,31 @@ class DeliveryCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.cream,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
+                  _statusChip(),
                   _priorityChip(),
                 ],
               ),
+              if (delivery.isFailed && delivery.failureReason != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  delivery.failureReason!.label,
+                  style: const TextStyle(
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
               if (delivery.orderNumber != null &&
                   delivery.orderNumber!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Pedido #${delivery.orderNumber}',
                   style: const TextStyle(
-                    color: AppColors.accentSoft,
+                    color: AppColors.primarySoft,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -65,7 +76,7 @@ class DeliveryCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 delivery.shortAddress,
-                style: const TextStyle(fontSize: 16, color: AppColors.cream),
+                style: const TextStyle(fontSize: 16, color: AppColors.text),
               ),
               Text(
                 delivery.city,
@@ -147,16 +158,50 @@ class DeliveryCard extends StatelessWidget {
   }
 
   Widget _badge() {
-    final label = index != null ? '$index' : (delivery.isOpen ? '•' : '✓');
+    final String label;
+    switch (delivery.status) {
+      case DeliveryStatus.delivered:
+        label = '✓';
+      case DeliveryStatus.failed:
+        label = '!';
+      default:
+        label = index != null ? '$index' : '•';
+    }
     return CircleAvatar(
       radius: 18,
-      backgroundColor:
-          delivery.isOpen ? AppColors.accent : AppColors.success,
+      backgroundColor: delivery.status == DeliveryStatus.pending
+          ? AppColors.surfaceHigh
+          : AppColors.forStatus(delivery.status),
       child: Text(
         label,
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  /// Selo de status. "Pendente" não ganha selo para não poluir a lista.
+  Widget _statusChip() {
+    if (delivery.status == DeliveryStatus.pending) {
+      return const SizedBox.shrink();
+    }
+    final color = AppColors.forStatus(delivery.status);
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        delivery.status.label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: color,
         ),
       ),
     );
@@ -170,7 +215,7 @@ class DeliveryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: urgent ? AppColors.urgent : AppColors.warning,
+        color: urgent ? AppColors.danger : AppColors.warning,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(

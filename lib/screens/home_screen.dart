@@ -7,13 +7,12 @@ import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/screens/add_delivery_screen.dart';
 import 'package:rota_max/screens/confirm_location_screen.dart';
-import 'package:rota_max/screens/dashboard_screen.dart';
 import 'package:rota_max/screens/delivery_detail_screen.dart';
-import 'package:rota_max/screens/history_screen.dart';
 import 'package:rota_max/screens/paste_addresses_screen.dart';
 import 'package:rota_max/screens/scan_tickets_screen.dart';
 import 'package:rota_max/screens/settings_screen.dart';
 import 'package:rota_max/screens/shift_report_screen.dart';
+import 'package:rota_max/widgets/day_panel.dart';
 import 'package:rota_max/widgets/delivery_card.dart';
 import 'package:rota_max/widgets/shift_stats_bar.dart';
 
@@ -31,36 +30,9 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Rota Max'),
         actions: [
           IconButton(
-            tooltip: 'Linha do tempo',
+            tooltip: 'Linha do tempo do turno',
             onPressed: () => _openReport(context),
             icon: const Icon(Icons.timeline),
-          ),
-          IconButton(
-            tooltip: 'Painel da operação',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const DashboardScreen()),
-              );
-            },
-            icon: const Icon(Icons.insights_outlined),
-          ),
-          IconButton(
-            tooltip: 'Histórico',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const HistoryScreen()),
-              );
-            },
-            icon: const Icon(Icons.bar_chart),
-          ),
-          IconButton(
-            tooltip: 'Ponto de saída e ajustes',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-              );
-            },
-            icon: const Icon(Icons.storefront_outlined),
           ),
         ],
       ),
@@ -80,6 +52,8 @@ class HomeScreen extends StatelessWidget {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               children: [
+                DayPanel(state: state),
+                const SizedBox(height: 12),
                 _TimelineCard(state: state, onTap: () => _openReport(context)),
                 const SizedBox(height: 12),
                 _BaseLocationBanner(state: state),
@@ -105,7 +79,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     state.message!,
-                    style: const TextStyle(color: AppColors.cream),
+                    style: const TextStyle(color: AppColors.text),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -294,7 +268,7 @@ class _TimelineCard extends StatelessWidget {
     final shift = state.lastEndedShift;
     final km = shift == null ? null : formatKm(shift.gpsKm);
     return Material(
-      color: AppColors.accent,
+      color: AppColors.primary,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -345,7 +319,7 @@ class _BaseLocationBanner extends StatelessWidget {
     final baseLocation = state.baseLocation;
     final configured = baseLocation.isConfigured;
     return Material(
-      color: configured ? AppColors.surface : const Color(0xFF3A2218),
+      color: configured ? AppColors.surface : AppColors.warningSurface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -358,7 +332,7 @@ class _BaseLocationBanner extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const Icon(Icons.storefront, color: AppColors.cream),
+              const Icon(Icons.storefront, color: AppColors.text),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

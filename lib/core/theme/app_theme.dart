@@ -1,28 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:rota_max/models/delivery.dart';
 
+/// Paleta "Azul logística" do Rota Max. Escura, com alto contraste para
+/// leitura na rua.
 class AppColors {
-  static const background = Color(0xFF14110F);
-  static const surface = Color(0xFF241C18);
-  static const surfaceHigh = Color(0xFF2F241F);
-  static const accent = Color(0xFFE53935);
-  static const accentSoft = Color(0xFFFF8A80);
-  static const cream = Color(0xFFF5E6C8);
-  static const muted = Color(0xFFB8A99A);
-  static const success = Color(0xFF66BB6A);
-  static const warning = Color(0xFFFFB74D);
-  static const urgent = Color(0xFFFF5252);
+  static const background = Color(0xFF0F1420);
+  static const surface = Color(0xFF1A2233);
+  static const surfaceHigh = Color(0xFF243049);
+  static const primary = Color(0xFF2F7BFF);
+  static const primarySoft = Color(0xFF8AB4FF);
+  static const text = Color(0xFFEAF0FF);
+  static const muted = Color(0xFF9AA6BF);
+  static const success = Color(0xFF2ECC71);
+  static const warning = Color(0xFFFFB020);
+  static const danger = Color(0xFFFF4D4F);
+
+  /// Fundo de aviso (cards de alerta).
+  static const warningSurface = Color(0xFF3A2E12);
+
+  static Color forStatus(DeliveryStatus status) {
+    switch (status) {
+      case DeliveryStatus.pending:
+        return muted;
+      case DeliveryStatus.inProgress:
+        return primary;
+      case DeliveryStatus.delivered:
+        return success;
+      case DeliveryStatus.failed:
+        return danger;
+      case DeliveryStatus.skipped:
+        return warning;
+    }
+  }
 }
 
 class AppTheme {
   static ThemeData dark() {
     const scheme = ColorScheme.dark(
-      primary: AppColors.accent,
+      primary: AppColors.primary,
       onPrimary: Colors.white,
-      secondary: AppColors.cream,
+      secondary: AppColors.primarySoft,
       onSecondary: AppColors.background,
       surface: AppColors.surface,
-      onSurface: AppColors.cream,
-      error: AppColors.urgent,
+      onSurface: AppColors.text,
+      error: AppColors.danger,
     );
 
     return ThemeData(
@@ -33,13 +54,13 @@ class AppTheme {
       fontFamily: 'Roboto',
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
-        foregroundColor: AppColors.cream,
+        foregroundColor: AppColors.text,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.w700,
-          color: AppColors.cream,
+          color: AppColors.text,
         ),
       ),
       cardTheme: CardThemeData(
@@ -50,8 +71,30 @@ class AppTheme {
         ),
         margin: const EdgeInsets.symmetric(vertical: 8),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.22),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.text
+                : AppColors.muted,
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.primarySoft
+                : AppColors.muted,
+          ),
+        ),
+      ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.accent,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -71,7 +114,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(56),
-          backgroundColor: AppColors.accent,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           textStyle: const TextStyle(
             fontSize: 18,
@@ -85,31 +128,36 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
-          foregroundColor: AppColors.cream,
-          side: const BorderSide(color: AppColors.muted),
+          foregroundColor: AppColors.text,
+          side: const BorderSide(color: AppColors.surfaceHigh, width: 1.5),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: AppColors.surfaceHigh,
+        contentTextStyle: TextStyle(color: AppColors.text, fontSize: 15),
+        behavior: SnackBarBehavior.floating,
+      ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.w800,
-          color: AppColors.cream,
+          color: AppColors.text,
         ),
         headlineMedium: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w700,
-          color: AppColors.cream,
+          color: AppColors.text,
         ),
         titleLarge: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: AppColors.cream,
+          color: AppColors.text,
         ),
-        bodyLarge: TextStyle(fontSize: 17, color: AppColors.cream, height: 1.3),
+        bodyLarge: TextStyle(fontSize: 17, color: AppColors.text, height: 1.3),
         bodyMedium: TextStyle(fontSize: 15, color: AppColors.muted),
       ),
     );

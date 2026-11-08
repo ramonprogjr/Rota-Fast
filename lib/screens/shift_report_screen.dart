@@ -168,7 +168,7 @@ class _ReportBodyState extends State<_ReportBody> {
                     polylines: [
                       Polyline(
                         points: points,
-                        color: AppColors.accentSoft.withValues(alpha: 0.55),
+                        color: AppColors.primarySoft.withValues(alpha: 0.55),
                         strokeWidth: 5,
                         borderStrokeWidth: 2,
                         borderColor: AppColors.background.withValues(alpha: 0.7),
@@ -176,7 +176,7 @@ class _ReportBodyState extends State<_ReportBody> {
                       if (highlight.length >= 2)
                         Polyline(
                           points: highlight,
-                          color: AppColors.cream,
+                          color: AppColors.text,
                           strokeWidth: 6,
                         ),
                     ],
@@ -259,7 +259,7 @@ class _ReportBodyState extends State<_ReportBody> {
                   minHeight: 10,
                   backgroundColor: AppColors.surfaceHigh,
                   color: report.oilKmRemaining <= 100
-                      ? AppColors.urgent
+                      ? AppColors.danger
                       : AppColors.warning,
                 ),
               ),
@@ -327,7 +327,7 @@ class _ReportBodyState extends State<_ReportBody> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppColors.cream,
+              color: AppColors.text,
             ),
           ),
         ],
@@ -344,7 +344,7 @@ class _MapPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? AppColors.cream : AppColors.accent;
+    final bg = selected ? AppColors.text : AppColors.primary;
     final fg = selected ? AppColors.background : Colors.white;
     return Container(
       alignment: Alignment.center,
@@ -411,7 +411,7 @@ class _TimelineTile extends StatelessWidget {
               child: Text(
                 hour,
                 style: TextStyle(
-                  color: selected ? AppColors.cream : AppColors.muted,
+                  color: selected ? AppColors.text : AppColors.muted,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -425,7 +425,7 @@ class _TimelineTile extends StatelessWidget {
                     height: 22,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.cream : AppColors.surfaceHigh,
+                      color: selected ? AppColors.text : AppColors.surfaceHigh,
                       shape: BoxShape.circle,
                     ),
                     child: event.kind == TimelineKind.stop
@@ -434,7 +434,7 @@ class _TimelineTile extends StatelessWidget {
                             style: TextStyle(
                               color: selected
                                   ? AppColors.background
-                                  : AppColors.cream,
+                                  : AppColors.text,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
@@ -446,7 +446,7 @@ class _TimelineTile extends StatelessWidget {
                             size: 12,
                             color: selected
                                 ? AppColors.background
-                                : AppColors.cream,
+                                : AppColors.text,
                           ),
                   ),
                   if (!isLast)
@@ -469,7 +469,7 @@ class _TimelineTile extends StatelessWidget {
                       event.title,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: selected ? AppColors.cream : AppColors.cream,
+                        color: selected ? AppColors.text : AppColors.text,
                       ),
                     ),
                     Text(

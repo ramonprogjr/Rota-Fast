@@ -66,7 +66,7 @@ class DeliveryDetailScreen extends StatelessWidget {
             Text(
               'Pedido #${current.orderNumber}',
               style: const TextStyle(
-                color: AppColors.accentSoft,
+                color: AppColors.primarySoft,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),

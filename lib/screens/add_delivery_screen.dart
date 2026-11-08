@@ -208,7 +208,7 @@ class _AddDeliveryScreenState extends State<AddDeliveryScreen> {
             ),
             if (_geoHint != null) ...[
               const SizedBox(height: 8),
-              Text(_geoHint!, style: const TextStyle(color: AppColors.cream)),
+              Text(_geoHint!, style: const TextStyle(color: AppColors.text)),
             ],
             if (_lat != null)
               Text(

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:rota_max/core/constants/app_constants.dart';
 import 'package:rota_max/core/theme/app_theme.dart';
 import 'package:rota_max/providers/app_state.dart';
-import 'package:rota_max/screens/home_screen.dart';
+import 'package:rota_max/screens/main_shell.dart';
 import 'package:rota_max/screens/splash_screen.dart';
 
 class RotaMaxApp extends StatelessWidget {
@@ -25,7 +25,7 @@ class RotaMaxApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark(),
         themeMode: ThemeMode.dark,
-        home: showSplash ? const SplashScreen() : const HomeScreen(),
+        home: showSplash ? const SplashScreen() : const MainShell(),
       ),
     );
   }

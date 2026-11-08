@@ -40,7 +40,7 @@ class HistoryScreen extends StatelessWidget {
               title: Text(dayFormat.format(day.day)),
               trailing: Text(
                 '${day.deliveries} · ${state.money.format(day.earnings)}',
-                style: const TextStyle(color: AppColors.cream),
+                style: const TextStyle(color: AppColors.text),
               ),
             );
           }),

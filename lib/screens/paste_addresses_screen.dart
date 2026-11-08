@@ -37,7 +37,7 @@ class _PasteAddressesScreenState extends State<PasteAddressesScreen> {
           const SizedBox(height: 8),
           const Text(
             'Exemplo:\nJoão — Rua Marechal Deodoro, 1500, Centro\nMaria — Av. Kennedy, 456, Rudge Ramos',
-            style: TextStyle(color: AppColors.cream, height: 1.4),
+            style: TextStyle(color: AppColors.text, height: 1.4),
           ),
           const SizedBox(height: 16),
           TextField(

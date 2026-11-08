@@ -22,7 +22,7 @@ class BigButton extends StatelessWidget {
     final child = FilledButton.icon(
       onPressed: onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: color ?? AppColors.accent,
+        backgroundColor: color ?? AppColors.primary,
         disabledBackgroundColor: AppColors.surfaceHigh,
         minimumSize: Size(expanded ? double.infinity : 0, 56),
       ),

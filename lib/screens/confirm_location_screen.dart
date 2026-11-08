@@ -86,7 +86,7 @@ class _ConfirmLocationScreenState extends State<ConfirmLocationScreen> {
                         child: Icon(
                           Icons.place,
                           color: i == _selected
-                              ? AppColors.accent
+                              ? AppColors.primary
                               : AppColors.muted,
                           size: 36,
                         ),
@@ -97,7 +97,7 @@ class _ConfirmLocationScreenState extends State<ConfirmLocationScreen> {
                       height: 48,
                       child: const Icon(
                         Icons.location_on,
-                        color: AppColors.cream,
+                        color: AppColors.text,
                         size: 48,
                       ),
                     ),

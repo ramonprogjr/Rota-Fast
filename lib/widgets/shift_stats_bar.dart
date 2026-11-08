@@ -53,7 +53,7 @@ class ShiftStatsBar extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-            color: AppColors.cream,
+            color: AppColors.text,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
