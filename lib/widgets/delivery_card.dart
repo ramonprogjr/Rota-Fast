@@ -82,6 +82,11 @@ class DeliveryCard extends StatelessWidget {
                 delivery.city,
                 style: const TextStyle(color: AppColors.muted),
               ),
+              if (delivery.isOpen && delivery.isIncomplete)
+                const Text(
+                  'Endereço incompleto: falta o número',
+                  style: TextStyle(color: AppColors.warning),
+                ),
               const SizedBox(height: 8),
               Row(
                 children: [

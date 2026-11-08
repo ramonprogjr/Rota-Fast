@@ -21,6 +21,7 @@ import 'package:rota_max/models/base_location.dart';
 import 'package:rota_max/models/shift.dart';
 import 'package:rota_max/models/shift_summary.dart';
 import 'package:rota_max/models/vehicle.dart';
+import 'package:rota_max/services/draft_store.dart';
 import 'package:rota_max/services/geocoding_service.dart';
 import 'package:rota_max/services/location_service.dart';
 import 'package:rota_max/services/maps_service.dart';
@@ -34,12 +35,30 @@ class BatchImportResult {
     required this.located,
     required this.failedLocate,
     this.duplicates = 0,
+    this.duplicateItems = const [],
   });
 
   final int saved;
   final int located;
   final int failedLocate;
+
+  /// Quantas linhas pareciam repetidas (salvas ou não, ver [duplicateItems]).
   final int duplicates;
+
+  /// Linhas prováveis duplicadas que **não** foram salvas
+  /// (`includeDuplicates: false`). A tela pode oferecê-las de novo.
+  final List<ParsedDelivery> duplicateItems;
+}
+
+/// Tentativa de salvar um endereço que já existe (aberto ou de hoje).
+class DuplicateAddressException implements Exception {
+  DuplicateAddressException(this.existing);
+
+  final Delivery existing;
+
+  @override
+  String toString() =>
+      'Esse endereço já está na lista (${existing.displayName}, ${existing.shortAddress}).';
 }
 
 /// Resultado de [AppState.navigateTo].
@@ -97,6 +116,10 @@ class AppState extends ChangeNotifier {
 
   /// Erros guardados no aparelho (Ajustes > Relatório de erros).
   int errorCount = 0;
+
+  /// Rascunhos de formulário.
+  // TODO(integração): trocar por AppState.saveDraft/loadDraft (pacote C).
+  late final DraftStore drafts = SettingsDraftStore(_settings);
 
   bool loading = true;
   bool busy = false;
@@ -386,17 +409,91 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Entregas contra as quais procuramos duplicidade: as que ainda estão na
+  /// rota e todas as de hoje (qualquer status).
+  Iterable<Delivery> get _duplicatePool {
+    final now = DateTime.now();
+    bool today(DateTime? at) =>
+        at != null &&
+        at.year == now.year &&
+        at.month == now.month &&
+        at.day == now.day;
+    return items.where(
+      (item) =>
+          item.isOpen ||
+          today(item.createdAt) ||
+          today(item.updatedAt) ||
+          today(item.deliveredAt),
+    );
+  }
+
+  /// Mesmo local provável: endereço completo igual, ou rua + número + cidade
+  /// iguais, ou CEP + número iguais.
+  static bool sameAddress(Delivery a, Delivery b) {
+    final numberA = AddressParser.normalizeAddress(a.number ?? '');
+    final numberB = AddressParser.normalizeAddress(b.number ?? '');
+    if (numberA.isNotEmpty && numberA == numberB) {
+      final cepA = AddressParser.normalizePostalCode(a.postalCode);
+      final cepB = AddressParser.normalizePostalCode(b.postalCode);
+      if (cepA != null && cepA == cepB) {
+        return true;
+      }
+      if (AddressParser.normalizeAddress(a.address) ==
+              AddressParser.normalizeAddress(b.address) &&
+          AddressParser.normalizeAddress(a.city) ==
+              AddressParser.normalizeAddress(b.city)) {
+        return true;
+      }
+    }
+    final fullA = AddressParser.normalizeAddress(a.fullAddress);
+    return fullA.isNotEmpty &&
+        fullA == AddressParser.normalizeAddress(b.fullAddress);
+  }
+
+  /// Entrega já cadastrada no mesmo endereço (aberta ou de hoje), ou null.
+  /// [extra] entra na comparação (ex.: linhas do mesmo lote ainda não salvas).
+  Delivery? findDuplicate(
+    Delivery candidate, {
+    int? ignoreId,
+    Iterable<Delivery> extra = const [],
+  }) {
+    final ignore = ignoreId ?? candidate.id;
+    for (final item in [..._duplicatePool, ...extra]) {
+      if (ignore != null && item.id == ignore) {
+        continue;
+      }
+      if (sameAddress(candidate, item)) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  /// Compatível com o uso antigo: compara só o texto do endereço completo.
   bool isDuplicateAddress(String address, {int? ignoreId}) {
     final needle = AddressParser.normalizeAddress(address);
     if (needle.isEmpty) {
       return false;
     }
-    return pending.any((item) {
+    return _duplicatePool.any((item) {
       if (ignoreId != null && item.id == ignoreId) {
         return false;
       }
       return AddressParser.normalizeAddress(item.fullAddress) == needle;
     });
+  }
+
+  /// Para cada linha do lote, a entrega que ela provavelmente repete (já
+  /// cadastrada ou uma linha anterior do próprio lote), ou null.
+  List<Delivery?> duplicatesFor(List<ParsedDelivery> parsed) {
+    final seen = <Delivery>[];
+    final result = <Delivery?>[];
+    for (final item in parsed) {
+      final candidate = item.toDelivery();
+      result.add(findDuplicate(candidate, extra: seen));
+      seen.add(candidate);
+    }
+    return result;
   }
 
   Future<List<GeoResult>> searchAddress({
@@ -405,6 +502,8 @@ class AppState extends ChangeNotifier {
     String? number,
     String? neighborhood,
     String? city,
+    String? state,
+    String? postalCode,
   }) async {
     busy = true;
     message = null;
@@ -416,6 +515,8 @@ class AppState extends ChangeNotifier {
         number: number,
         neighborhood: neighborhood,
         city: city,
+        state: state,
+        postalCode: postalCode,
       );
       if (results.isEmpty) {
         message =
@@ -465,19 +566,34 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  /// Salva (nova ou editada). Se falhar, devolve [delivery] como veio (sem
-  /// id, se era nova) e deixa a explicação em [message].
-  Future<Delivery> saveDelivery(Delivery delivery, {bool locate = false}) {
+  /// Salva (nova ou editada).
+  ///
+  /// Endereço repetido (aberto ou de hoje) lança [DuplicateAddressException]
+  /// antes de gravar, a menos que [allowDuplicate] seja true ("Salvar mesmo
+  /// assim"). Outras falhas não sobem para a tela: devolve [delivery] como
+  /// veio (sem id, se era nova) e deixa a explicação em [message].
+  /// Se o endereço de uma entrega existente mudou e o pino não foi refeito,
+  /// as coordenadas antigas são apagadas.
+  Future<Delivery> saveDelivery(
+    Delivery delivery, {
+    bool locate = false,
+    bool allowDuplicate = false,
+  }) async {
+    final duplicate = findDuplicate(delivery, ignoreId: delivery.id);
+    if (duplicate != null && !allowDuplicate) {
+      throw DuplicateAddressException(duplicate);
+    }
     return _action(
       'saveDelivery',
       () async {
-        var saved = delivery;
-        if (isDuplicateAddress(saved.fullAddress, ignoreId: saved.id)) {
-          message = 'Esse endereço já está nas pendentes.';
-        }
+        var saved = _dropStalePin(delivery);
         if (locate && !saved.hasCoordinates) {
           try {
-            final results = await _geocoding.search(saved.fullAddress);
+            final results = await _geocoding.search(
+              saved.fullAddress,
+              state: saved.state,
+              postalCode: saved.postalCode,
+            );
             if (results.isNotEmpty) {
               saved = saved.copyWith(
                 latitude: results.first.latitude,
@@ -500,6 +616,44 @@ class AppState extends ChangeNotifier {
       orElse: delivery,
       failure: 'Não foi possível salvar a entrega. Tente de novo.',
     );
+  }
+
+  /// Endereço mudou mas as coordenadas são as mesmas de antes: o pino é do
+  /// endereço antigo e levaria a rota para o lugar errado.
+  Delivery _dropStalePin(Delivery next) {
+    if (next.id == null || !next.hasCoordinates) {
+      return next;
+    }
+    Delivery? previous;
+    for (final item in items) {
+      if (item.id == next.id) {
+        previous = item;
+        break;
+      }
+    }
+    if (previous == null || !previous.hasCoordinates) {
+      return next;
+    }
+    final moved = AddressParser.locationSignature(
+          street: previous.address,
+          number: previous.number,
+          neighborhood: previous.neighborhood,
+          city: previous.city,
+          postalCode: previous.postalCode,
+        ) !=
+        AddressParser.locationSignature(
+          street: next.address,
+          number: next.number,
+          neighborhood: next.neighborhood,
+          city: next.city,
+          postalCode: next.postalCode,
+        );
+    final samePin = previous.latitude == next.latitude &&
+        previous.longitude == next.longitude;
+    if (moved && samePin) {
+      return next.copyWith(clearCoordinates: true, locationConfirmed: false);
+    }
+    return next;
   }
 
   Future<void> deleteDelivery(int id) {
@@ -1164,9 +1318,15 @@ class AppState extends ChangeNotifier {
     return vehicle;
   }
 
+  /// Salva as linhas importadas (colar texto / OCR).
+  ///
+  /// Linhas que repetem uma entrega aberta, de hoje ou do próprio lote não
+  /// são salvas, a menos que [includeDuplicates] seja true; elas voltam em
+  /// [BatchImportResult.duplicateItems] para a tela perguntar.
   Future<BatchImportResult> importParsed(
     List<ParsedDelivery> parsed, {
     bool locate = false,
+    bool includeDuplicates = false,
   }) async {
     if (busy) {
       return const BatchImportResult(saved: 0, located: 0, failedLocate: 0);
@@ -1178,30 +1338,30 @@ class AppState extends ChangeNotifier {
     var located = 0;
     var failed = 0;
     var duplicates = 0;
+    final skipped = <ParsedDelivery>[];
+    final batch = <Delivery>[];
     try {
       for (final item in parsed) {
-        var delivery = Delivery(
-          orderNumber: item.orderNumber,
-          customerName: item.customerName ?? 'Cliente',
-          phone: item.phone,
-          address: item.address,
-          number: item.number,
-          neighborhood: item.neighborhood,
-          city: item.city,
-          value: item.value,
-        );
-        if (isDuplicateAddress(delivery.fullAddress)) {
+        var delivery = item.toDelivery();
+        if (findDuplicate(delivery, extra: batch) != null) {
           duplicates++;
-          continue;
+          if (!includeDuplicates) {
+            skipped.add(item);
+            continue;
+          }
         }
         if (locate) {
           try {
-            final results = await _geocoding.search(delivery.fullAddress);
+            final results = await _geocoding.search(
+              delivery.fullAddress,
+              postalCode: delivery.postalCode,
+              state: delivery.state,
+            );
             if (results.isNotEmpty) {
               delivery = delivery.copyWith(
                 latitude: results.first.latitude,
                 longitude: results.first.longitude,
-                locationConfirmed: false,
+                locationConfirmed: results.first.confirmed,
               );
               located++;
             } else {
@@ -1211,17 +1371,29 @@ class AppState extends ChangeNotifier {
             failed++;
           }
         }
-        await _deliveries.insert(delivery);
+        batch.add(await _deliveries.insert(delivery));
         saved++;
       }
       await refresh();
-      message =
-          '$saved entrega(s) adicionada(s). $located localizada(s), $failed sem coordenada, $duplicates duplicata(s). Confirme os pontos no mapa.';
+      final parts = <String>['$saved entrega(s) adicionada(s).'];
+      if (locate) {
+        parts.add('$located localizada(s), $failed sem localização.');
+      }
+      if (skipped.isNotEmpty) {
+        parts.add('${skipped.length} repetida(s) não salva(s).');
+      } else if (duplicates > 0) {
+        parts.add('$duplicates repetida(s) salva(s) mesmo assim.');
+      }
+      if (located > 0) {
+        parts.add('Confirme os pontos no mapa.');
+      }
+      message = parts.join(' ');
       return BatchImportResult(
         saved: saved,
         located: located,
         failedLocate: failed,
         duplicates: duplicates,
+        duplicateItems: skipped,
       );
     } catch (error, stack) {
       await _report(error, stack, 'importParsed');

@@ -31,6 +31,8 @@ class FakeGeocodingService extends GeocodingService {
     String? number,
     String? neighborhood,
     String? city,
+    String? state,
+    String? postalCode,
   }) async {
     final item = await geocode(rawQuery);
     return item == null ? [] : [item];
@@ -42,6 +44,7 @@ AppState buildTestState({
   BaseLocation? baseLocation,
   GeoResult? geo,
   VehicleRepository? vehicles,
+  GeocodingService? geocoder,
 }) {
   return AppState(
     deliveryRepository: MemoryDeliveryRepository(deliveries),
@@ -55,7 +58,7 @@ AppState buildTestState({
           ),
     ),
     settingsRepository: MemorySettingsRepository(),
-    geocodingService: FakeGeocodingService(result: geo),
+    geocodingService: geocoder ?? FakeGeocodingService(result: geo),
     vehicleRepository: vehicles,
   );
 }
