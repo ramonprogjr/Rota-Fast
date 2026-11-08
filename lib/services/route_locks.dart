@@ -33,10 +33,10 @@ typedef StopLock = ({bool locked, int? fixedPosition});
 
 /// Restrições das paradas abertas, lidas de `route_stops`.
 Map<int, StopLock> locksOf(Iterable<Delivery> open) => {
-      for (final item in open)
-        if (item.id != null && item.hasConstraint)
-          item.id!: (locked: item.locked, fixedPosition: item.fixedPosition),
-    };
+  for (final item in open)
+    if (item.id != null && item.hasConstraint)
+      item.id!: (locked: item.locked, fixedPosition: item.fixedPosition),
+};
 
 /// Junta a ordem otimizada com as travas.
 ///
@@ -117,9 +117,11 @@ List<Delivery> applyLocks(
       if (currentIds.contains(item.id) && !placed.contains(item.id)) item,
   ];
   final restIds = {for (final item in rest) item.id};
-  rest.addAll(current.where(
-    (item) => !placed.contains(item.id) && !restIds.contains(item.id),
-  ));
+  rest.addAll(
+    current.where(
+      (item) => !placed.contains(item.id) && !restIds.contains(item.id),
+    ),
+  );
   final seen = <int?>{};
   var cursor = 0;
   for (final item in rest) {
@@ -135,4 +137,25 @@ List<Delivery> applyLocks(
     slots[cursor] = item;
   }
   return slots.whereType<Delivery>().toList();
+}
+
+/// Nova ordem com a parada [deliveryId] tirada de onde está e inserida na
+/// posição [targetIndex]. Devolve `null` se a parada não está na lista, a
+/// posição é inválida ou nada muda.
+List<Delivery>? moveStopTo(
+  List<Delivery> stops,
+  int deliveryId,
+  int targetIndex,
+) {
+  final from = stops.indexWhere((item) => item.id == deliveryId);
+  if (from < 0 || targetIndex < 0 || targetIndex >= stops.length) {
+    return null;
+  }
+  if (from == targetIndex) {
+    return null;
+  }
+  final next = [...stops];
+  final item = next.removeAt(from);
+  next.insert(targetIndex, item);
+  return next;
 }

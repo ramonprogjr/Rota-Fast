@@ -9,6 +9,7 @@ import 'package:rota_max/models/delivery.dart';
 import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/vehicle.dart';
 import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/services/route_locks.dart';
 import 'package:rota_max/services/fuel_station_service.dart';
 import 'package:rota_max/widgets/location_status_banner.dart';
 import 'package:rota_max/widgets/nav_app_sheet.dart';
@@ -42,6 +43,10 @@ const _userColor = Color(0xFF2F9BFF);
 class _RouteMapScreenState extends State<RouteMapScreen> {
   final _mapController = MapController();
   bool _showStations = false;
+
+  /// Modo "Mudar ordem": o mapa fica parado e os números são arrastados na
+  /// hora (funciona com mouse e com o dedo, sem precisar segurar).
+  bool _reordering = false;
   bool _loadingStations = false;
   FuelStationResult? _stations;
   GeoPoint? _stationsCenter;
@@ -59,6 +64,17 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
         }
       });
     }
+  }
+
+  Future<void> _recalculate(AppState state) async {
+    await state.organizeRoute(useGps: true);
+    if (!mounted) {
+      return;
+    }
+    final text = state.message ?? 'Rota recalculada.';
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
   }
 
   @override
@@ -126,6 +142,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                     )
                   : allPoints.first,
               initialZoom: 15,
+              interactionOptions: InteractionOptions(
+                flags: _reordering ? InteractiveFlag.none : InteractiveFlag.all,
+              ),
               initialCameraFit: allPoints.length >= 2
                   ? CameraFit.coordinates(
                       coordinates: allPoints,
@@ -181,6 +200,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                           delivery: pending[i],
                           highlighted: pending[i].id == next?.id,
                           onTap: () => _showStop(state, pending[i], i + 1),
+                          reordering: _reordering,
+                          onDropped: (draggedId) =>
+                              _moveStop(state, draggedId, i),
                         ),
                       ),
                   if (_showStations)
@@ -202,7 +224,9 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                       point: LatLng(user.latitude, user.longitude),
                       width: 110,
                       height: 52,
-                      child: _UserMarker(stale: reading!.stale || !reading.isOk),
+                      child: _UserMarker(
+                        stale: reading!.stale || !reading.isOk,
+                      ),
                     ),
                 ],
               ),
@@ -225,8 +249,47 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
                 if (withoutCoords > 0) ...[
                   const SizedBox(height: 6),
                   _Pill(
-                    text: '$withoutCoords parada(s) sem localização '
+                    text:
+                        '$withoutCoords parada(s) sem localização '
                         'não aparecem no mapa.',
+                  ),
+                ],
+                if (pending.length >= 2) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Pill(
+                          text: _reordering
+                              ? 'Arraste um número e solte sobre outro.'
+                              : 'Toque em "Mudar ordem" para arrastar '
+                                    'os números.',
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      FilledButton.icon(
+                        key: const Key('map-reorder-mode'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _reordering
+                              ? AppColors.success
+                              : AppColors.surfaceHigh,
+                          foregroundColor: _reordering
+                              ? AppColors.background
+                              : AppColors.text,
+                          visualDensity: VisualDensity.compact,
+                          // O tema estica os botões na largura toda.
+                          minimumSize: const Size(0, 40),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        onPressed: () =>
+                            setState(() => _reordering = !_reordering),
+                        icon: Icon(
+                          _reordering ? Icons.check : Icons.swap_vert,
+                          size: 18,
+                        ),
+                        label: Text(_reordering ? 'Concluir' : 'Mudar ordem'),
+                      ),
+                    ],
                   ),
                 ],
                 if (_showStations && _loadingStations) ...[
@@ -245,6 +308,24 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             bottom: next == null ? 24 : 200,
             child: Column(
               children: [
+                FloatingActionButton.small(
+                  key: const Key('map-recalculate'),
+                  heroTag: 'map-recalculate',
+                  tooltip: 'Recalcular rota inteligente',
+                  backgroundColor: AppColors.success,
+                  foregroundColor: AppColors.background,
+                  onPressed: state.busy || pending.isEmpty
+                      ? null
+                      : () => _recalculate(state),
+                  child: state.busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome),
+                ),
+                const SizedBox(height: 8),
                 FloatingActionButton.small(
                   heroTag: 'map-fit',
                   tooltip: 'Ver a rota inteira',
@@ -492,13 +573,47 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
     }
   }
 
+  /// Arrastar no mapa: a parada [draggedId] passa a ocupar a posição
+  /// [targetIndex] (a do número onde foi solta). Mesma regra da tela
+  /// "Editar ordem": tira de onde estava e insere no lugar novo.
+  Future<void> _moveStop(AppState state, int draggedId, int targetIndex) async {
+    final ordered = moveStopTo(state.pending, draggedId, targetIndex);
+    if (ordered == null) {
+      return;
+    }
+    final saved = await state.reorderStops(ordered);
+    if (!mounted) {
+      return;
+    }
+    final moved = ordered[targetIndex];
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            saved
+                ? '${moved.displayName} agora é a parada ${targetIndex + 1}.'
+                : state.message ?? 'Não foi possível mudar a ordem.',
+          ),
+          action: saved
+              ? SnackBarAction(
+                  label: 'Desfazer',
+                  onPressed: () => state.undoReorder(),
+                )
+              : null,
+        ),
+      );
+  }
+
   void _showStop(AppState state, Delivery delivery, int number) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('$number. ${delivery.displayName} — '
-              '${delivery.shortAddress}'),
+          content: Text(
+            '$number. ${delivery.displayName} — '
+            '${delivery.shortAddress}',
+          ),
           action: delivery.isOpen
               ? SnackBarAction(
                   label: 'Navegar',
@@ -599,10 +714,10 @@ class _NextStopPanel extends StatelessWidget {
             Text(
               km == null
                   ? (delivery.hasCoordinates
-                      ? 'Distância indisponível'
-                      : 'Sem localização no mapa')
+                        ? 'Distância indisponível'
+                        : 'Sem localização no mapa')
                   : '${formatKm(km)} · ${formatDuration(eta!)} '
-                      '(linha reta)',
+                        '(linha reta)',
               style: const TextStyle(color: AppColors.muted),
             ),
             const SizedBox(height: 10),
@@ -627,6 +742,8 @@ class _StopMarker extends StatelessWidget {
     required this.delivery,
     required this.highlighted,
     required this.onTap,
+    required this.onDropped,
+    this.reordering = false,
   });
 
   final int number;
@@ -634,33 +751,115 @@ class _StopMarker extends StatelessWidget {
   final bool highlighted;
   final VoidCallback onTap;
 
+  /// No modo "Mudar ordem" o arraste começa na hora; fora dele, só
+  /// segurando (para não brigar com o arrastar do mapa).
+  final bool reordering;
+
+  /// Outra parada (id) foi solta em cima desta.
+  final ValueChanged<int> onDropped;
+
+  @override
+  Widget build(BuildContext context) {
+    final id = delivery.id;
+    return DragTarget<int>(
+      onWillAcceptWithDetails: (details) => details.data != id,
+      onAcceptWithDetails: (details) => onDropped(details.data),
+      builder: (context, candidates, rejected) {
+        final hovering = candidates.isNotEmpty;
+        final circle = _StopCircle(
+          number: number,
+          delivery: delivery,
+          highlighted: highlighted,
+          hovering: hovering,
+        );
+        if (id == null) {
+          return GestureDetector(onTap: onTap, child: circle);
+        }
+        final feedback = SizedBox(
+          width: 52,
+          height: 52,
+          child: _StopCircle(
+            number: number,
+            delivery: delivery,
+            highlighted: true,
+            hovering: false,
+          ),
+        );
+        if (reordering) {
+          return MouseRegion(
+            cursor: SystemMouseCursors.grab,
+            child: Draggable<int>(
+              data: id,
+              feedback: feedback,
+              childWhenDragging: Opacity(opacity: 0.3, child: circle),
+              child: circle,
+            ),
+          );
+        }
+        // Segurar e arrastar: o toque curto continua mostrando a parada e
+        // arrastar sem segurar continua movendo o mapa.
+        return LongPressDraggable<int>(
+          data: id,
+          delay: const Duration(milliseconds: 300),
+          hapticFeedbackOnStart: true,
+          feedback: SizedBox(
+            width: 52,
+            height: 52,
+            child: _StopCircle(
+              number: number,
+              delivery: delivery,
+              highlighted: true,
+              hovering: false,
+            ),
+          ),
+          childWhenDragging: Opacity(opacity: 0.3, child: circle),
+          child: GestureDetector(onTap: onTap, child: circle),
+        );
+      },
+    );
+  }
+}
+
+class _StopCircle extends StatelessWidget {
+  const _StopCircle({
+    required this.number,
+    required this.delivery,
+    required this.highlighted,
+    required this.hovering,
+  });
+
+  final int number;
+  final Delivery delivery;
+  final bool highlighted;
+  final bool hovering;
+
   @override
   Widget build(BuildContext context) {
     final color = highlighted
         ? AppColors.primary
         : AppColors.forStatus(delivery.status);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: highlighted ? Colors.white : AppColors.background,
-            width: highlighted ? 3 : 2,
-          ),
-          boxShadow: const [
-            BoxShadow(color: Colors.black54, blurRadius: 4),
-          ],
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: hovering
+              ? AppColors.success
+              : highlighted
+              ? Colors.white
+              : AppColors.background,
+          width: hovering ? 4 : (highlighted ? 3 : 2),
         ),
-        child: Text(
-          '$number',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: highlighted ? 18 : 14,
-          ),
+        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4)],
+      ),
+      child: Text(
+        '$number',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: highlighted ? 18 : 14,
+          decoration: TextDecoration.none,
         ),
       ),
     );

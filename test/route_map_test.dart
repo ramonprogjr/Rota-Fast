@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -36,10 +37,7 @@ AppState _state(FakeGeolocator fake, {List<Delivery>? deliveries}) {
     ),
     settingsRepository: MemorySettingsRepository(),
     geocodingService: FakeGeocodingService(),
-    locationService: LocationService(
-      adapter: fake,
-      sleep: (_) async {},
-    ),
+    locationService: LocationService(adapter: fake, sleep: (_) async {}),
   );
 }
 
@@ -63,20 +61,19 @@ void main() {
       VoidCallback? onRetry,
       VoidCallback? onLocation,
       VoidCallback? onApp,
-    }) =>
-        tester.pumpWidget(
-          _wrap(
-            Scaffold(
-              body: LocationStatusBanner(
-                reading: reading,
-                now: now,
-                onRetry: onRetry,
-                onOpenLocationSettings: onLocation,
-                onOpenAppSettings: onApp,
-              ),
-            ),
+    }) => tester.pumpWidget(
+      _wrap(
+        Scaffold(
+          body: LocationStatusBanner(
+            reading: reading,
+            now: now,
+            onRetry: onRetry,
+            onOpenLocationSettings: onLocation,
+            onOpenAppSettings: onApp,
           ),
-        );
+        ),
+      ),
+    );
 
     testWidgets('não mostra nada sem leitura ou com GPS ok', (tester) async {
       await pumpBanner(tester, null);
@@ -155,38 +152,38 @@ void main() {
     }
 
     List<Delivery> stops() => [
-          Delivery(
-            id: 1,
-            customerName: 'Ana',
-            address: 'Rua A, 10',
-            latitude: -23.69,
-            longitude: -46.56,
-            routeOrder: 0,
-          ),
-          Delivery(
-            id: 2,
-            customerName: 'Bruno',
-            address: 'Rua B, 20',
-            latitude: -23.70,
-            longitude: -46.57,
-            routeOrder: 1,
-          ),
-          Delivery(
-            id: 3,
-            customerName: 'Carla',
-            address: 'Rua C, 30',
-            routeOrder: 2,
-          ),
-          Delivery(
-            id: 4,
-            customerName: 'Davi',
-            address: 'Rua D, 40',
-            latitude: -23.68,
-            longitude: -46.55,
-            status: DeliveryStatus.delivered,
-            deliveredAt: DateTime.now(),
-          ),
-        ];
+      Delivery(
+        id: 1,
+        customerName: 'Ana',
+        address: 'Rua A, 10',
+        latitude: -23.69,
+        longitude: -46.56,
+        routeOrder: 0,
+      ),
+      Delivery(
+        id: 2,
+        customerName: 'Bruno',
+        address: 'Rua B, 20',
+        latitude: -23.70,
+        longitude: -46.57,
+        routeOrder: 1,
+      ),
+      Delivery(
+        id: 3,
+        customerName: 'Carla',
+        address: 'Rua C, 30',
+        routeOrder: 2,
+      ),
+      Delivery(
+        id: 4,
+        customerName: 'Davi',
+        address: 'Rua D, 40',
+        latitude: -23.68,
+        longitude: -46.55,
+        status: DeliveryStatus.delivered,
+        deliveredAt: DateTime.now(),
+      ),
+    ];
 
     testWidgets('monta com paradas e posição desatualizada', (tester) async {
       await setPhoneView(tester);
@@ -244,7 +241,10 @@ void main() {
       expect(find.text('Posto 9'), findsOneWidget);
       expect(find.text('Preços não disponíveis.'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Ver a rota inteira'), warnIfMissed: false);
+      await tester.tap(
+        find.byTooltip('Ver a rota inteira'),
+        warnIfMissed: false,
+      );
       await tester.pump();
       expect(tester.takeException(), isNull);
     });
@@ -267,8 +267,9 @@ void main() {
       expect(find.byKey(const Key('map-next-stop')), findsNothing);
     });
 
-    testWidgets('com "perguntar", Navegar mostra a escolha do app',
-        (tester) async {
+    testWidgets('com "perguntar", Navegar mostra a escolha do app', (
+      tester,
+    ) async {
       await setPhoneView(tester);
       final state = _state(
         FakeGeolocator(permission: LocationPermission.deniedForever),
@@ -291,6 +292,89 @@ void main() {
       expect(find.text('Navegar com'), findsOneWidget);
       expect(find.byKey(const Key('nav-app-waze')), findsOneWidget);
       expect(find.byKey(const Key('nav-app-google')), findsOneWidget);
+    });
+
+    testWidgets('segurar o 2 e soltar sobre o 1 troca a ordem', (tester) async {
+      await setPhoneView(tester);
+      final state = _state(FakeGeolocator(), deliveries: stops());
+      await state.load();
+      await tester.pumpWidget(
+        _wrap(
+          const RouteMapScreen(showTiles: false, refreshOnOpen: false),
+          state: state,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(state.pending.map((d) => d.customerName), [
+        'Ana',
+        'Bruno',
+        'Carla',
+      ]);
+      expect(find.byKey(const Key('map-reorder-mode')), findsOneWidget);
+
+      final from = tester.getCenter(find.byKey(const Key('stop-marker-2')));
+      final to = tester.getCenter(find.byKey(const Key('stop-marker-1')));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(Offset.lerp(from, to, 0.5)!);
+      await tester.pump();
+      await gesture.moveTo(to);
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(state.pending.map((d) => d.customerName), [
+        'Bruno',
+        'Ana',
+        'Carla',
+      ]);
+      expect(find.text('Bruno agora é a parada 1.'), findsOneWidget);
+
+      await tester.tap(find.text('Desfazer'));
+      await tester.pumpAndSettle();
+      expect(state.pending.map((d) => d.customerName), [
+        'Ana',
+        'Bruno',
+        'Carla',
+      ]);
+    });
+
+    testWidgets('modo "Mudar ordem": arrasta na hora, sem segurar', (
+      tester,
+    ) async {
+      await setPhoneView(tester);
+      final state = _state(FakeGeolocator(), deliveries: stops());
+      await state.load();
+      await tester.pumpWidget(
+        _wrap(
+          const RouteMapScreen(showTiles: false, refreshOnOpen: false),
+          state: state,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('map-reorder-mode')));
+      await tester.pumpAndSettle();
+      expect(find.text('Concluir'), findsOneWidget);
+
+      final from = tester.getCenter(find.byKey(const Key('stop-marker-1')));
+      final to = tester.getCenter(find.byKey(const Key('stop-marker-2')));
+      final gesture = await tester.startGesture(
+        from,
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveTo(Offset.lerp(from, to, 0.5)!);
+      await tester.pump();
+      await gesture.moveTo(to);
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(state.pending.map((d) => d.customerName), [
+        'Bruno',
+        'Ana',
+        'Carla',
+      ]);
     });
   });
 }

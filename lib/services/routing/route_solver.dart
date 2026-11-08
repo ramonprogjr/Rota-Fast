@@ -15,11 +15,12 @@ import 'package:rota_max/models/delivery.dart';
 /// - `chegada_i` = soma das viagens até a parada `i` mais
 ///   [RouteSolverInput.serviceSeconds] (tempo de atendimento) por parada
 ///   anterior. O atendimento só entra na penalidade, não no tempo total.
-/// - Pesos ([priorityPenaltyWeight]): urgente 3,0; alta 1,5; normal 0.
+/// - Pesos ([priorityPenaltyWeight]): urgente 0,8; alta 0,2; normal 0.
 ///   Sem prioridades o problema é puro "menor tempo de viagem".
-///   Adiantar um urgente em uma parada economiza ~3 × (trecho + atendimento),
-///   então ele sobe na fila, mas um urgente muito longe ainda pode esperar
-///   se o desvio custar mais que isso.
+///   A prioridade é uma preferência leve: adianta a parada quando o desvio
+///   é pequeno, mas não faz a rota atravessar a cidade e voltar (com pesos
+///   3,0/1,5 o cenário do site ficou 30–50% mais longo, em zigue-zague).
+///   Para obrigar uma parada a sair primeiro, use o alfinete (posição fixa).
 /// - Com ponto final, o último trecho (última parada → fim) entra na viagem.
 ///
 /// ## Algoritmo
@@ -71,9 +72,9 @@ class RouteSolverInput {
 double priorityPenaltyWeight(DeliveryPriority priority) {
   switch (priority) {
     case DeliveryPriority.urgent:
-      return 3.0;
+      return 0.8;
     case DeliveryPriority.high:
-      return 1.5;
+      return 0.2;
     case DeliveryPriority.normal:
       return 0.0;
   }
@@ -81,11 +82,11 @@ double priorityPenaltyWeight(DeliveryPriority priority) {
 
 /// Fator do vizinho mais próximo (só para a solução inicial).
 double _greedyFactor(double weight) {
-  if (weight >= 3) {
-    return 0.4;
+  if (weight >= 0.5) {
+    return 0.7;
   }
   if (weight > 0) {
-    return 0.7;
+    return 0.9;
   }
   return 1.0;
 }

@@ -68,9 +68,11 @@ void main() {
   });
 
   test('parada que o otimizador não devolveu não some', () {
-    final result = applyLocks([stop(3), stop(1)], current, {
-      2: (locked: true, fixedPosition: null),
-    });
+    final result = applyLocks(
+      [stop(3), stop(1)],
+      current,
+      {2: (locked: true, fixedPosition: null)},
+    );
     expect(ids(result), [3, 2, 1, 4, 5]);
   });
 
@@ -100,9 +102,28 @@ void main() {
     final back = routeDistanceKm(origin, [c, a]);
     expect(back, greaterThan(straight));
     expect(routeDistanceKm(null, [a, c]), closeTo(1.11, 0.05));
-    expect(
-      routeDistanceKm(origin, [a], end: origin),
-      closeTo(2.22, 0.05),
-    );
+    expect(routeDistanceKm(origin, [a], end: origin), closeTo(2.22, 0.05));
+  });
+
+  group('moveStopTo (arrastar número no mapa)', () {
+    test('soltar a 5ª sobre a 2ª: ela vira a 2ª e as outras descem', () {
+      expect(ids(moveStopTo(current, 5, 1)!), [1, 5, 2, 3, 4]);
+    });
+
+    test('soltar a 1ª sobre a 4ª: ela vira a 4ª e as outras sobem', () {
+      expect(ids(moveStopTo(current, 1, 3)!), [2, 3, 4, 1, 5]);
+    });
+
+    test('mesma posição, parada inexistente ou posição inválida: nada', () {
+      expect(moveStopTo(current, 3, 2), isNull);
+      expect(moveStopTo(current, 99, 0), isNull);
+      expect(moveStopTo(current, 1, 5), isNull);
+      expect(moveStopTo(current, 1, -1), isNull);
+    });
+
+    test('não altera a lista original', () {
+      moveStopTo(current, 5, 0);
+      expect(ids(current), [1, 2, 3, 4, 5]);
+    });
   });
 }

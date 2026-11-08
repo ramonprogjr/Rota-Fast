@@ -50,7 +50,7 @@ void main() {
     expect(sent!.url.toString(), FuelStationService.endpoint);
     expect(sent!.headers['User-Agent'], contains('RotaMax'));
     final data = sent!.bodyFields['data']!;
-    expect(data, startsWith('[out:json][timeout:15];'));
+    expect(data, startsWith('[out:json][timeout:25];'));
     expect(
       data,
       contains('nwr["amenity"="fuel"](around:3000,-23.6012,-46.5034);'),
@@ -91,8 +91,43 @@ void main() {
     final result = await service.nearby(-23.6, -46.5);
     expect(result.ok, isFalse);
     expect(result.error, isNotEmpty);
+    // Tentou os 3 servidores; nada vai para o cache.
+    expect(calls, 3);
+    expect(result.error, contains('ocupado'));
     await service.nearby(-23.6, -46.5);
-    expect(calls, 2);
+    expect(calls, 6);
+  });
+
+  test('servidor principal fora (502): usa o espelho', () async {
+    final asked = <String>[];
+    final client = MockClient((request) async {
+      asked.add(request.url.host);
+      return request.url.host == 'overpass-api.de'
+          ? http.Response('bad gateway', 502)
+          : http.Response(_body, 200);
+    });
+    final result = await FuelStationService(client: client).nearby(-23.6, -46.5);
+    expect(result.ok, isTrue);
+    expect(result.stations, hasLength(2));
+    expect(asked, ['overpass-api.de', 'maps.mail.ru']);
+  });
+
+  test('servidor principal lento: o espelho entra depois da espera', () async {
+    final asked = <String>[];
+    final client = MockClient((request) {
+      asked.add(request.url.host);
+      if (request.url.host == 'overpass-api.de') {
+        return Completer<http.Response>().future; // nunca responde
+      }
+      return Future.value(http.Response(_body, 200));
+    });
+    final service = FuelStationService(
+      client: client,
+      hedgeDelay: const Duration(milliseconds: 20),
+    );
+    final result = await service.nearby(-23.6, -46.5);
+    expect(result.ok, isTrue);
+    expect(asked, ['overpass-api.de', 'maps.mail.ru']);
   });
 
   test('sem internet e timeout viram mensagem', () async {

@@ -39,13 +39,19 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Rota Max'),
         actions: [
           IconButton(
+            key: const Key('recalculate-route'),
+            tooltip: 'Recalcular rota inteligente',
+            onPressed: state.busy || pending.isEmpty
+                ? null
+                : () => state.organizeRoute(useGps: true),
+            icon: const Icon(Icons.auto_awesome),
+          ),
+          IconButton(
             key: const Key('open-route-map'),
             tooltip: 'Mapa',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const RouteMapScreen(),
-                ),
+                MaterialPageRoute<void>(builder: (_) => const RouteMapScreen()),
               );
             },
             icon: const Icon(Icons.map_outlined),
@@ -60,9 +66,7 @@ class HomeScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const AddDeliveryScreen(),
-            ),
+            MaterialPageRoute<void>(builder: (_) => const AddDeliveryScreen()),
           );
         },
         icon: const Icon(Icons.add),
@@ -269,11 +273,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _openReport(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const ShiftReportScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const ShiftReportScreen()));
   }
 
   Future<void> _endShift(BuildContext context, AppState state) async {

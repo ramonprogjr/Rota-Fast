@@ -71,7 +71,9 @@ class FuelStationService {
     http.Client? client,
     this.radiusMeters = 3000,
     this.cacheTtl = const Duration(minutes: 10),
-    this.timeout = const Duration(seconds: 15),
+    this.timeout = const Duration(seconds: 30),
+    this.hedgeDelay = const Duration(seconds: 4),
+    this.endpoints = defaultEndpoints,
     DateTime Function()? clock,
   })  : _client = client ?? http.Client(),
         _clock = clock ?? DateTime.now;
@@ -79,17 +81,31 @@ class FuelStationService {
   /// Instância compartilhada (o cache sobrevive entre aberturas do mapa).
   static final FuelStationService shared = FuelStationService();
 
-  static const endpoint = 'https://overpass-api.de/api/interpreter';
+  /// Servidores Overpass públicos (gratuitos e muitas vezes lotados). A
+  /// busca começa no primeiro; se ele falhar ou não responder em
+  /// [hedgeDelay], o próximo entra na disputa e vale a primeira resposta boa.
+  static const defaultEndpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+  ];
+
+  static String get endpoint => defaultEndpoints.first;
 
   final http.Client _client;
   final DateTime Function() _clock;
   final int radiusMeters;
   final Duration cacheTtl;
+  /// Tempo total da busca, somando todos os servidores.
   final Duration timeout;
+
+  /// Espera antes de chamar o próximo servidor em paralelo.
+  final Duration hedgeDelay;
+  final List<String> endpoints;
   final Map<String, _CacheEntry> _cache = {};
 
   static String buildQuery(double lat, double lng, {int radius = 3000}) =>
-      '[out:json][timeout:15];'
+      '[out:json][timeout:25];'
       'nwr["amenity"="fuel"](around:$radius,$lat,$lng);'
       'out center 30;';
 
@@ -146,43 +162,88 @@ class FuelStationService {
     if (cached != null && _clock().difference(cached.at) < cacheTtl) {
       return FuelStationResult(stations: cached.stations, fromCache: true);
     }
+    final body = {'data': buildQuery(lat, lng, radius: radiusMeters)};
+    final done = Completer<List<FuelStation>>();
+    final failures = <Object>[];
+    var started = 0;
+    var finished = 0;
+    Timer? hedge;
+
+    void startNext() {
+      if (done.isCompleted || started >= endpoints.length) {
+        return;
+      }
+      final url = endpoints[started++];
+      hedge?.cancel();
+      if (started < endpoints.length) {
+        hedge = Timer(hedgeDelay, startNext);
+      }
+      _fetch(url, body).then(
+        (stations) {
+          if (!done.isCompleted) {
+            done.complete(stations);
+          }
+        },
+        onError: (Object error) {
+          failures.add(error);
+          finished++;
+          if (done.isCompleted) {
+            return;
+          }
+          if (finished >= endpoints.length) {
+            done.completeError(const _AllFailed());
+          } else if (finished == started) {
+            // Ninguém mais tentando: chama o próximo já.
+            startNext();
+          }
+        },
+      );
+    }
+
+    startNext();
     try {
-      final response = await _client
-          .post(
-            Uri.parse(endpoint),
-            headers: {
-              'User-Agent': AppConstants.nominatimUserAgent,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: {'data': buildQuery(lat, lng, radius: radiusMeters)},
-          )
-          .timeout(timeout);
-      if (response.statusCode == 429 || response.statusCode == 504) {
-        return const FuelStationResult(
-          error: 'Serviço de postos ocupado. Tente de novo em instantes.',
-        );
-      }
-      if (response.statusCode != 200) {
-        return FuelStationResult(
-          error: 'Não foi possível buscar postos (${response.statusCode}).',
-        );
-      }
-      final stations = parse(utf8.decode(response.bodyBytes));
+      final stations = await done.future.timeout(timeout);
       _cache[key] = _CacheEntry(stations, _clock());
       return FuelStationResult(stations: stations);
     } on TimeoutException {
       return const FuelStationResult(
-        error: 'A busca de postos demorou demais. Verifique a internet.',
+        error: 'A busca de postos demorou demais (servidores lentos). '
+            'Tente de novo em instantes.',
       );
-    } on FormatException {
-      return const FuelStationResult(
-        error: 'Resposta inválida do serviço de postos.',
-      );
-    } catch (_) {
-      return const FuelStationResult(
-        error: 'Sem internet para buscar postos.',
-      );
+    } on _AllFailed {
+      return FuelStationResult(error: _messageFor(failures));
+    } finally {
+      hedge?.cancel();
     }
+  }
+
+  Future<List<FuelStation>> _fetch(String url, Map<String, String> body) async {
+    final response = await _client.post(
+      Uri.parse(url),
+      headers: {
+        'User-Agent': AppConstants.nominatimUserAgent,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body,
+    );
+    if (response.statusCode != 200) {
+      throw _HttpStatus(response.statusCode);
+    }
+    return parse(utf8.decode(response.bodyBytes));
+  }
+
+  static String _messageFor(List<Object> failures) {
+    final statuses = failures.whereType<_HttpStatus>().toList();
+    if (statuses.any((s) => s.busy)) {
+      return 'Serviço de postos ocupado. Tente de novo em instantes.';
+    }
+    if (statuses.isNotEmpty) {
+      return 'Não foi possível buscar postos (${statuses.first.code}).';
+    }
+    if (failures.any((f) => f is FormatException)) {
+      return 'Resposta inválida do serviço de postos.';
+    }
+    return 'Sem internet para buscar postos.';
   }
 
   void clearCache() => _cache.clear();
@@ -196,4 +257,17 @@ class FuelStationService {
     }
     return null;
   }
+}
+
+class _HttpStatus implements Exception {
+  const _HttpStatus(this.code);
+
+  final int code;
+
+  /// Servidor lotado ou fora do ar por instantes.
+  bool get busy => code == 429 || (code >= 502 && code <= 504);
+}
+
+class _AllFailed implements Exception {
+  const _AllFailed();
 }
