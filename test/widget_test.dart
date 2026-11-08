@@ -68,12 +68,56 @@ void main() {
     await tester.pumpWidget(RotaMaxApp(state: state, showSplash: false));
     await tester.pumpAndSettle();
 
-    expect(find.text('Maria'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Entregue'), 200);
+    // Aparece no card de próxima parada e na lista "Na rota".
+    expect(find.text('Maria'), findsNWidgets(2));
+    expect(find.text('PRÓXIMA PARADA'), findsOneWidget);
     await tester.tap(find.text('Entregue'));
     await tester.pumpAndSettle();
 
     expect(state.pending, isEmpty);
+    expect(find.text('PRÓXIMA PARADA'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Concluídas hoje'), 200);
     expect(find.text('Concluídas hoje'), findsOneWidget);
+  });
+
+  testWidgets('não entregue pede motivo e depois dá para tentar de novo',
+      (tester) async {
+    await setPhoneView(tester);
+    final state = buildTestState(
+      deliveries: [
+        Delivery(
+          id: 1,
+          customerName: 'Carlos',
+          address: 'Rua Jurubatuba, 100',
+          latitude: -23.68,
+          longitude: -46.56,
+        ),
+      ],
+    );
+    await state.load();
+    await tester.pumpWidget(RotaMaxApp(state: state, showSplash: false));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Não entregue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Por que não entregou?'), findsOneWidget);
+
+    // Sem motivo o botão fica desabilitado.
+    final save = find.widgetWithText(FilledButton, 'Registrar não entrega');
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+
+    await tester.tap(find.text('Destinatário ausente'));
+    await tester.pumpAndSettle();
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(state.pending, isEmpty);
+    expect(state.problems.single.failureReason, FailureReason.recipientAbsent);
+    await tester.scrollUntilVisible(find.text('Com problema'), 200);
+
+    await state.retry(state.problems.single);
+    await tester.pumpAndSettle();
+    expect(state.problems, isEmpty);
+    expect(state.pending.single.attempts, 1);
   });
 }

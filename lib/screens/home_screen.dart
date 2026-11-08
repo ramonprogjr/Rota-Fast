@@ -14,7 +14,8 @@ import 'package:rota_max/screens/settings_screen.dart';
 import 'package:rota_max/screens/shift_report_screen.dart';
 import 'package:rota_max/widgets/day_panel.dart';
 import 'package:rota_max/widgets/delivery_card.dart';
-import 'package:rota_max/widgets/shift_stats_bar.dart';
+import 'package:rota_max/widgets/failure_sheet.dart';
+import 'package:rota_max/widgets/next_stop_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,8 @@ class HomeScreen extends StatelessWidget {
     final state = context.watch<AppState>();
     final pending = state.pending;
     final done = state.doneToday;
+    final problems = state.problems;
+    final next = state.nextStop;
 
     return Scaffold(
       appBar: AppBar(
@@ -53,28 +56,6 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               children: [
                 DayPanel(state: state),
-                const SizedBox(height: 12),
-                _TimelineCard(state: state, onTap: () => _openReport(context)),
-                const SizedBox(height: 12),
-                _BaseLocationBanner(state: state),
-                const SizedBox(height: 12),
-                if (state.oilWarning)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      'Óleo: faltam menos de 100 km para a troca (a cada 1000 km).',
-                      style: TextStyle(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ShiftStatsBar(
-                  summary: state.summary,
-                  earningsLabel: state.summary.earnings > 0
-                      ? state.money.format(state.summary.earnings)
-                      : null,
-                ),
                 if (state.message != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -82,68 +63,102 @@ class HomeScreen extends StatelessWidget {
                     style: const TextStyle(color: AppColors.text),
                   ),
                 ],
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: state.activeShift == null
-                      ? () => state.startShift()
-                      : () => _endShift(context, state),
-                  icon: Icon(
-                    state.activeShift == null ? Icons.play_arrow : Icons.stop,
+                if (!state.baseLocation.isConfigured) ...[
+                  const SizedBox(height: 12),
+                  _BaseLocationBanner(state: state),
+                ],
+                if (state.oilWarning) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Óleo: faltam menos de 100 km para a troca (a cada 1000 km).',
+                    style: TextStyle(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  label: Text(
-                    state.activeShift == null
-                        ? 'Iniciar turno'
-                        : 'Encerrar turno',
+                ],
+                if (next != null) ...[
+                  const SizedBox(height: 12),
+                  NextStopCard(
+                    delivery: next,
+                    position: pending.indexOf(next) + 1,
+                    total: pending.length,
+                    distanceKm: state.distanceFromPrevious(next),
+                    onTap: () => _openDetail(context, next),
+                    onNavigate: () => _navigate(context, state, next),
+                    onDelivered: () => state.markDelivered(next),
+                    onFailed: () => _markFailed(context, state, next),
                   ),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: () => _openReport(context),
-                  icon: const Icon(Icons.timeline),
-                  label: const Text('Linha do tempo'),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: state.busy
-                      ? null
-                      : () => state.organizeRoute(useGps: true),
-                  icon: const Icon(Icons.route),
-                  label: Text(
-                    state.busy ? 'Organizando...' : 'Organizar rota',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ScanTicketsScreen(),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: state.busy
+                            ? null
+                            : () => state.organizeRoute(useGps: true),
+                        icon: const Icon(Icons.route),
+                        label: Text(
+                          state.busy ? 'Organizando...' : 'Organizar rota',
+                        ),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.photo_camera),
-                  label: const Text('Fotografar etiquetas'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: state.activeShift == null
+                            ? () => state.startShift()
+                            : () => _endShift(context, state),
+                        icon: Icon(
+                          state.activeShift == null
+                              ? Icons.play_arrow
+                              : Icons.stop,
+                        ),
+                        label: Text(
+                          state.activeShift == null
+                              ? 'Iniciar turno'
+                              : 'Encerrar turno',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const PasteAddressesScreen(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ScanTicketsScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.photo_camera),
+                        label: const Text('Etiquetas'),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.content_paste),
-                  label: const Text('Colar vários endereços'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const PasteAddressesScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.content_paste),
+                        label: const Text('Colar lista'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Configure a rota parado. No caminho, use o Google Maps. O turno precisa ficar ativo para registrar o km.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Text(
-                  pending.isEmpty ? 'Nenhuma entrega pendente' : 'Entregas',
+                  pending.isEmpty ? 'Nenhuma parada na rota' : 'Na rota',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
@@ -162,12 +177,23 @@ class HomeScreen extends StatelessWidget {
                     index: entry.key + 1,
                     distanceKm: state.distanceFromPrevious(delivery),
                     onTap: () => _openDetail(context, delivery),
-                    onNavigate: () => _navigate(context, state, delivery),
-                    onDelivered: () => state.markDelivered(delivery),
                     onConfirmLocation: () =>
                         _confirmLocation(context, state, delivery),
                   );
                 }),
+                if (problems.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Com problema',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  ...problems.map(
+                    (delivery) => DeliveryCard(
+                      delivery: delivery,
+                      onTap: () => _openDetail(context, delivery),
+                    ),
+                  ),
+                ],
                 if (done.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Text(
@@ -181,9 +207,27 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SizedBox(height: 16),
+                _TimelineCard(state: state, onTap: () => _openReport(context)),
+                const SizedBox(height: 12),
+                const Text(
+                  'Monte a rota com o veículo parado. No caminho, use os comandos de voz do app de navegação.',
+                  style: TextStyle(color: AppColors.muted, fontSize: 13),
+                ),
               ],
             ),
     );
+  }
+
+  Future<void> _markFailed(
+    BuildContext context,
+    AppState state,
+    Delivery delivery,
+  ) async {
+    final input = await askFailureReason(context);
+    if (input != null) {
+      await state.markFailed(delivery, input.reason, note: input.note);
+    }
   }
 
   void _openReport(BuildContext context) {
@@ -237,13 +281,13 @@ class HomeScreen extends StatelessWidget {
     AppState state,
     Delivery delivery,
   ) async {
-    final ok = await state.maps.navigate(address: delivery.fullAddress);
+    final ok = await state.navigateTo(delivery);
     if (!context.mounted) {
       return;
     }
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível abrir o Google Maps.')),
+        const SnackBar(content: Text('Não foi possível abrir a navegação.')),
       );
     }
   }

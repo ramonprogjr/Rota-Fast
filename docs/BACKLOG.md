@@ -23,8 +23,8 @@ Foco da **v1.0**: app de entregas, roteirização e trajetos para **motoristas p
 - ✅ Barra inferior: Rota · Relatórios · Veículos · Ajustes (Relatórios e Veículos provisórios até as Etapas 6 e 8)
 
 ## Etapa 4 — Execução (PRD §7, §13)
-- ✅ Regras no banco · ⬜ Botões Não entregue (motivo), Pular, Tentar de novo
-- ⬜ Card "Próxima parada" · ⬜ Linha do tempo de eventos da entrega
+- ✅ Regras no banco · ✅ Botões Não entregue (motivo), Pular, Tentar de novo
+- ✅ Card "Próxima parada" · ✅ Linha do tempo de eventos da entrega
 
 ## Etapa 5 — Roteirização e economia (PRD §5)
 - ✅ Vizinho mais próximo com prioridade · ⬜ 2-opt · ⬜ Fator de malha viária

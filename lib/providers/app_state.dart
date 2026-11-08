@@ -356,6 +356,15 @@ class AppState extends ChangeNotifier {
     await _transition(delivery, DeliveryStatus.inProgress);
   }
 
+  /// Abre a navegação para a parada e a marca como "a caminho".
+  /// Retorna false se nenhum app de navegação abriu.
+  Future<bool> navigateTo(Delivery delivery) async {
+    if (delivery.isOpen) {
+      await startStop(delivery);
+    }
+    return maps.navigate(address: delivery.fullAddress);
+  }
+
   Future<List<DeliveryEvent>> eventsFor(Delivery delivery) async =>
       delivery.id == null ? [] : _deliveries.eventsFor(delivery.id!);
 

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rota_max/core/theme/app_theme.dart';
 import 'package:rota_max/core/utils/haversine.dart';
 import 'package:rota_max/core/utils/phone_utils.dart';
 import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/delivery_event.dart';
 import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/providers/app_state.dart';
 import 'package:rota_max/screens/add_delivery_screen.dart';
 import 'package:rota_max/screens/confirm_location_screen.dart';
 import 'package:rota_max/widgets/big_button.dart';
+import 'package:rota_max/widgets/failure_sheet.dart';
 
 class DeliveryDetailScreen extends StatelessWidget {
   const DeliveryDetailScreen({super.key, required this.deliveryId});
@@ -122,30 +125,30 @@ class DeliveryDetailScreen extends StatelessWidget {
               label: const Text('Confirmar no mapa'),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          _StatusLine(delivery: current),
+          const SizedBox(height: 16),
           if (current.isOpen) ...[
             BigButton(
-              label: 'Navegar',
+              label: current.status == DeliveryStatus.inProgress
+                  ? 'Navegar (a caminho)'
+                  : 'Navegar',
               icon: Icons.navigation,
               onPressed: () async {
-                final ok = await state.maps.navigate(
-                  address: current.fullAddress,
-                );
-                if (!context.mounted) {
+                final ok = await state.navigateTo(current);
+                if (!context.mounted || ok) {
                   return;
                 }
-                if (!ok) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Não foi possível abrir o Google Maps.'),
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Não foi possível abrir a navegação.'),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 10),
             BigButton(
-              label: 'Marcar como entregue',
+              label: 'Entregue',
               icon: Icons.check_circle,
               color: AppColors.success,
               onPressed: () async {
@@ -156,24 +159,58 @@ class DeliveryDetailScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final input = await askFailureReason(context);
+                      if (input == null) {
+                        return;
+                      }
+                      await state.markFailed(
+                        current,
+                        input.reason,
+                        note: input.note,
+                      );
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    icon: const Icon(Icons.report_outlined,
+                        color: AppColors.danger),
+                    label: const Text('Não entregue'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (current.status != DeliveryStatus.skipped)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => state.skip(current),
+                      icon: const Icon(Icons.skip_next,
+                          color: AppColors.warning),
+                      label: const Text('Pular'),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => state.recalculateFrom(current),
               icon: const Icon(Icons.refresh),
               label: const Text('Recalcular rota a partir daqui'),
             ),
-          ] else ...[
-            const Text(
-              'Entrega concluída',
-              style: TextStyle(
-                color: AppColors.success,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+          ] else if (current.isFailed) ...[
+            BigButton(
+              label: 'Tentar de novo',
+              icon: Icons.replay,
+              onPressed: () => state.retry(current),
             ),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: () => state.reopen(current),
-              child: const Text('Reabrir como pendente'),
+          ] else ...[
+            OutlinedButton.icon(
+              onPressed: () => _confirmReopen(context, state, current),
+              icon: const Icon(Icons.undo),
+              label: const Text('Reabrir (marquei por engano)'),
             ),
           ],
           const SizedBox(height: 16),
@@ -199,9 +236,46 @@ class DeliveryDetailScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          Text('Histórico', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          _EventTimeline(
+            // Recarrega quando o status ou a data de atualização mudam.
+            key: ValueKey('${current.status}-${current.updatedAt}'),
+            future: state.eventsFor(current),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmReopen(
+    BuildContext context,
+    AppState state,
+    Delivery delivery,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reabrir entrega?'),
+        content: const Text(
+          'Ela volta para a rota como pendente. A mudança fica no histórico.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reabrir'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await state.reopen(delivery);
+    }
   }
 
   Future<void> _confirmDelete(
@@ -232,5 +306,107 @@ class DeliveryDetailScreen extends StatelessWidget {
         Navigator.of(context).pop();
       }
     }
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.delivery});
+
+  final Delivery delivery;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppColors.forStatus(delivery.status);
+    final detail = switch (delivery.status) {
+      DeliveryStatus.failed => [
+          delivery.failureReason?.label,
+          if (delivery.attempts > 1) '${delivery.attempts} tentativas',
+        ].whereType<String>().join(' · '),
+      DeliveryStatus.delivered when delivery.deliveredAt != null =>
+        'às ${DateFormat('HH:mm').format(delivery.deliveredAt!)}',
+      _ => '',
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.circle, size: 12, color: color),
+          const SizedBox(width: 10),
+          Text(
+            delivery.status.label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          if (detail.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                detail,
+                style: const TextStyle(color: AppColors.text),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _EventTimeline extends StatelessWidget {
+  const _EventTimeline({super.key, required this.future});
+
+  final Future<List<DeliveryEvent>> future;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<DeliveryEvent>>(
+      future: future,
+      builder: (context, snapshot) {
+        final events = snapshot.data;
+        if (events == null) {
+          return const SizedBox(height: 24);
+        }
+        if (events.isEmpty) {
+          return const Text(
+            'Sem registros.',
+            style: TextStyle(color: AppColors.muted),
+          );
+        }
+        final time = DateFormat('dd/MM HH:mm');
+        return Column(
+          children: [
+            for (final event in events.reversed)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.circle,
+                  size: 12,
+                  color: AppColors.forStatus(event.to),
+                ),
+                title: Text(
+                  event.from == null ? 'Cadastrada' : event.to.label,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  [
+                    time.format(event.createdAt),
+                    event.reason?.label,
+                    event.note,
+                  ].whereType<String>().join(' · '),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }
