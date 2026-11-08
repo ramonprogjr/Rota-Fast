@@ -1,11 +1,11 @@
-import 'package:rota_pizza/data/repositories/memory_delivery_repository.dart';
-import 'package:rota_pizza/data/repositories/pizzeria_repository.dart';
-import 'package:rota_pizza/data/repositories/settings_repository.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/models/pizzeria.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/services/geocoding_service.dart';
+import 'package:rota_max/data/repositories/memory_delivery_repository.dart';
+import 'package:rota_max/data/repositories/base_location_repository.dart';
+import 'package:rota_max/data/repositories/settings_repository.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/models/base_location.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/services/geocoding_service.dart';
 
 class FakeGeocodingService extends GeocodingService {
   FakeGeocodingService({this.result})
@@ -38,15 +38,15 @@ class FakeGeocodingService extends GeocodingService {
 
 AppState buildTestState({
   List<Delivery>? deliveries,
-  Pizzeria? pizzeria,
+  BaseLocation? baseLocation,
   GeoResult? geo,
 }) {
   return AppState(
     deliveryRepository: MemoryDeliveryRepository(deliveries),
-    pizzeriaRepository: MemoryPizzeriaRepository(
-      pizzeria ??
-          Pizzeria(
-            name: 'Pizzaria Teste',
+    baseLocationRepository: MemoryBaseLocationRepository(
+      baseLocation ??
+          BaseLocation(
+            name: 'Base Teste',
             address: 'Rua Central, 100',
             latitude: -23.6944,
             longitude: -46.5654,

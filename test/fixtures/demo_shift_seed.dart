@@ -1,13 +1,11 @@
 import 'dart:math';
 
-import 'package:sqflite/sqflite.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/shift.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/shift.dart';
 
-/// Turno de demonstração (domingo 30/08/2026) para print / LinkedIn.
+/// Turno de exemplo (domingo 30/08/2026) usado só nos testes.
 class DemoShiftData {
-  static const flagKey = 'demo_linkedin_shift_v1';
   static const gpsKm = 62.1;
   static const gasPriceLiter = 6.49;
   static const kmPerLiter = 35.0;
@@ -195,69 +193,5 @@ class DemoShiftData {
           from[1] + (to[1] - from[1]) * (i / steps),
         ],
     ];
-  }
-}
-
-class DemoShiftSeeder {
-  static Future<void> seedIfNeeded(Database db) async {
-    final tables = await db.rawQuery(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='shifts'",
-    );
-    if (tables.isEmpty) {
-      return;
-    }
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM shifts'),
-        ) ??
-        0;
-    if (count > 0) {
-      return;
-    }
-
-    await db.transaction((txn) async {
-      await txn.insert(
-        'pizzeria',
-        {
-          'id': 1,
-          'name': 'Forno da Vila',
-          'address': 'Rua Marechal Deodoro, 980',
-          'city': 'São Bernardo do Campo',
-          'latitude': DemoShiftData.originLat,
-          'longitude': DemoShiftData.originLng,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-
-      Future<void> put(String key, String value) async {
-        await txn.insert(
-          'settings',
-          {'key': key, 'value': value},
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      }
-
-      await put('gas_price_liter', '${DemoShiftData.gasPriceLiter}');
-      await put('km_per_liter', '${DemoShiftData.kmPerLiter}');
-      await put('odometer_km', '${DemoShiftData.odometerEnd}');
-      await put('last_oil_change_km', '${DemoShiftData.lastOilChangeKm}');
-
-      final shiftId = await txn.insert('shifts', {
-        'started_at': DemoShiftData.startedAt.toIso8601String(),
-        'ended_at': DemoShiftData.endedAt.toIso8601String(),
-        'gps_km': DemoShiftData.gpsKm,
-        'odometer_start': DemoShiftData.odometerEnd - DemoShiftData.gpsKm,
-        'odometer_end': DemoShiftData.odometerEnd,
-      });
-
-      for (final point in DemoShiftData.trackPoints(shiftId)) {
-        await txn.insert('track_points', point.toMap()..remove('id'));
-      }
-
-      for (final delivery in DemoShiftData.deliveries()) {
-        await txn.insert('deliveries', delivery.toMap()..remove('id'));
-      }
-
-      await put(DemoShiftData.flagKey, '1');
-    });
   }
 }

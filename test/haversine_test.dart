@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
+import 'package:rota_max/core/utils/haversine.dart';
 
 void main() {
   test('calcula distância conhecida entre dois pontos', () {

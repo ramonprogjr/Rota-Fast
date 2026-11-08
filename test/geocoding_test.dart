@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/services/geocoding_service.dart';
+import 'package:rota_max/services/geocoding_service.dart';
 
 void main() {
   test('parseia vários candidatos do Nominatim', () {

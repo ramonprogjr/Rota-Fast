@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/core/utils/maintenance.dart';
+import 'package:rota_max/core/utils/maintenance.dart';
 
 void main() {
   test('óleo restante a cada 1000 km', () {
@@ -34,7 +34,7 @@ void main() {
       oilRemaining: 200,
       money: (value) => 'R\$ ${value.toStringAsFixed(2)}',
     );
-    expect(text, contains('Rota Food'));
+    expect(text, contains('Rota Max'));
     expect(text, contains('8'));
     expect(text, contains('42,5'));
     expect(text, contains('200 km'));

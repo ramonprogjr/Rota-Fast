@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/app.dart';
-import 'package:rota_pizza/models/delivery.dart';
+import 'package:rota_max/app.dart';
+import 'package:rota_max/models/delivery.dart';
 import 'helpers/test_state.dart';
 
 void main() {
@@ -16,9 +16,9 @@ void main() {
     await setPhoneView(tester);
     final state = buildTestState();
     await state.load();
-    await tester.pumpWidget(RotaPizzaApp(state: state));
-    expect(find.text('ROTA FOOD'), findsOneWidget);
-    expect(find.text('Seu caminho. Suas entregas.'), findsOneWidget);
+    await tester.pumpWidget(RotaMaxApp(state: state));
+    expect(find.text('ROTA MAX'), findsOneWidget);
+    expect(find.text('Sua rota. Seu controle. Seu resultado.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
   });
@@ -27,7 +27,7 @@ void main() {
     await setPhoneView(tester);
     final state = buildTestState();
     await state.load();
-    await tester.pumpWidget(RotaPizzaApp(state: state, showSplash: false));
+    await tester.pumpWidget(RotaMaxApp(state: state, showSplash: false));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Adicionar'));
@@ -62,7 +62,7 @@ void main() {
       ],
     );
     await state.load();
-    await tester.pumpWidget(RotaPizzaApp(state: state, showSplash: false));
+    await tester.pumpWidget(RotaMaxApp(state: state, showSplash: false));
     await tester.pumpAndSettle();
 
     expect(find.text('Maria'), findsOneWidget);

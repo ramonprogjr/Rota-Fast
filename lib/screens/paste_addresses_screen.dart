@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/core/utils/address_parser.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/core/utils/address_parser.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class PasteAddressesScreen extends StatefulWidget {
   const PasteAddressesScreen({super.key});
@@ -36,7 +36,7 @@ class _PasteAddressesScreenState extends State<PasteAddressesScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Exemplo:\nJoão — Rua Marechal Deodoro, 1500, Centro, SBC\nMaria — Av. Kennedy, 456, Rudge Ramos',
+            'Exemplo:\nJoão — Rua Marechal Deodoro, 1500, Centro\nMaria — Av. Kennedy, 456, Rudge Ramos',
             style: TextStyle(color: AppColors.cream, height: 1.4),
           ),
           const SizedBox(height: 16),

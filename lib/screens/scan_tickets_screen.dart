@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/core/utils/address_parser.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/confirm_location_screen.dart';
-import 'package:rota_pizza/services/ocr_service.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/core/utils/address_parser.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/confirm_location_screen.dart';
+import 'package:rota_max/services/ocr_service.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class ScanTicketsScreen extends StatefulWidget {
   const ScanTicketsScreen({super.key});
@@ -58,12 +58,12 @@ class _ScanTicketsScreenState extends State<ScanTicketsScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Fotografar comandas')),
+      appBar: AppBar(title: const Text('Fotografar etiquetas')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           const Text(
-            'Tire até 5 fotos das comandas. Confira o texto antes de localizar — o leitor pode errar número ou bairro.',
+            'Tire até 5 fotos das etiquetas ou comandas. Confira o texto antes de localizar — o leitor pode errar número ou bairro.',
             style: TextStyle(color: AppColors.muted, fontSize: 16),
           ),
           const SizedBox(height: 12),
@@ -148,7 +148,7 @@ class _ScanTicketsScreenState extends State<ScanTicketsScreen> {
       if (parsed.isEmpty) {
         setState(() {
           _hint =
-              'Não li um endereço nesta foto. Deixe a comanda reta, com boa luz, ou edite na mão.';
+              'Não li um endereço nesta foto. Deixe a etiqueta reta, com boa luz, ou edite na mão.';
           _drafts.add(_Draft(ParsedDelivery(address: text)));
         });
       } else {

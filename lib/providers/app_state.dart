@@ -1,23 +1,23 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/utils/address_parser.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/core/utils/maintenance.dart';
-import 'package:rota_pizza/data/repositories/delivery_repository.dart';
-import 'package:rota_pizza/data/repositories/pizzeria_repository.dart';
-import 'package:rota_pizza/data/repositories/settings_repository.dart';
-import 'package:rota_pizza/data/repositories/shift_repository.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/models/pizzeria.dart';
-import 'package:rota_pizza/models/shift.dart';
-import 'package:rota_pizza/models/shift_summary.dart';
-import 'package:rota_pizza/services/geocoding_service.dart';
-import 'package:rota_pizza/services/location_service.dart';
-import 'package:rota_pizza/services/maps_service.dart';
-import 'package:rota_pizza/services/route_optimizer.dart';
-import 'package:rota_pizza/services/shift_tracker.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/utils/address_parser.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/core/utils/maintenance.dart';
+import 'package:rota_max/data/repositories/delivery_repository.dart';
+import 'package:rota_max/data/repositories/base_location_repository.dart';
+import 'package:rota_max/data/repositories/settings_repository.dart';
+import 'package:rota_max/data/repositories/shift_repository.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/models/base_location.dart';
+import 'package:rota_max/models/shift.dart';
+import 'package:rota_max/models/shift_summary.dart';
+import 'package:rota_max/services/geocoding_service.dart';
+import 'package:rota_max/services/location_service.dart';
+import 'package:rota_max/services/maps_service.dart';
+import 'package:rota_max/services/route_optimizer.dart';
+import 'package:rota_max/services/shift_tracker.dart';
 
 class BatchImportResult {
   const BatchImportResult({
@@ -36,7 +36,7 @@ class BatchImportResult {
 class AppState extends ChangeNotifier {
   AppState({
     required DeliveryRepository deliveryRepository,
-    required PizzeriaRepository pizzeriaRepository,
+    required BaseLocationRepository baseLocationRepository,
     required SettingsRepository settingsRepository,
     required GeocodingService geocodingService,
     LocationService locationService = const LocationService(),
@@ -44,7 +44,7 @@ class AppState extends ChangeNotifier {
     this._optimizer = const RouteOptimizer(),
     ShiftRepository? shiftRepository,
   })  : _deliveries = deliveryRepository,
-        _pizzerias = pizzeriaRepository,
+        _baseLocations = baseLocationRepository,
         _settings = settingsRepository,
         _geocoding = geocodingService,
         _shifts = shiftRepository ?? MemoryShiftRepository(),
@@ -54,7 +54,7 @@ class AppState extends ChangeNotifier {
   }
 
   final DeliveryRepository _deliveries;
-  final PizzeriaRepository _pizzerias;
+  final BaseLocationRepository _baseLocations;
   final SettingsRepository _settings;
   final GeocodingService _geocoding;
   final ShiftRepository _shifts;
@@ -67,7 +67,7 @@ class AppState extends ChangeNotifier {
   bool busy = false;
   String? message;
   List<Delivery> items = [];
-  Pizzeria pizzeria = Pizzeria();
+  BaseLocation baseLocation = BaseLocation();
   bool motorcycleMode = true;
   Shift? activeShift;
   Shift? lastEndedShift;
@@ -101,8 +101,8 @@ class AppState extends ChangeNotifier {
   }
 
   GeoPoint? get originPoint {
-    if (pizzeria.hasCoordinates) {
-      return GeoPoint(pizzeria.latitude!, pizzeria.longitude!);
+    if (baseLocation.hasCoordinates) {
+      return GeoPoint(baseLocation.latitude!, baseLocation.longitude!);
     }
     return null;
   }
@@ -124,7 +124,8 @@ class AppState extends ChangeNotifier {
     loading = true;
     notifyListeners();
     items = await _deliveries.getAll();
-    pizzeria = await _pizzerias.get();
+    baseLocation = await _baseLocations.get();
+    _geocoding.fallbackCity = cityHint();
     motorcycleMode = await _settings.motorcycleMode();
     vehicle = await _settings.vehicle();
     activeShift = await _shifts.openShift();
@@ -138,7 +139,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> refresh() async {
     items = await _deliveries.getAll();
-    pizzeria = await _pizzerias.get();
+    baseLocation = await _baseLocations.get();
+    _geocoding.fallbackCity = cityHint();
     motorcycleMode = await _settings.motorcycleMode();
     vehicle = await _settings.vehicle();
     activeShift = await _shifts.openShift();
@@ -283,7 +285,7 @@ class AppState extends ChangeNotifier {
       origin ??= originPoint;
       if (origin == null) {
         message =
-            'Cadastre o estabelecimento (com endereço localizado) para calcular a rota.';
+            'Cadastre o ponto de saída (com endereço localizado) para calcular a rota.';
         notifyListeners();
         return false;
       }
@@ -340,7 +342,7 @@ class AppState extends ChangeNotifier {
     return results.first;
   }
 
-  Future<void> savePizzeria(Pizzeria next, {bool locate = true}) async {
+  Future<void> saveBaseLocation(BaseLocation next, {bool locate = true}) async {
     busy = true;
     message = null;
     notifyListeners();
@@ -355,13 +357,13 @@ class AppState extends ChangeNotifier {
           );
         } else {
           message ??=
-              'Não achei o estabelecimento nesse endereço. Confirme no mapa ou ajuste o texto.';
+              'Não achei o ponto de saída nesse endereço. Confirme no mapa ou ajuste o texto.';
         }
       }
-      await _pizzerias.save(saved);
+      await _baseLocations.save(saved);
       await refresh();
       if (saved.hasCoordinates) {
-        message = 'Estabelecimento salvo.';
+        message = 'Ponto de saída salvo.';
       }
     } finally {
       busy = false;
@@ -636,5 +638,7 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  String cityHint() => AppConstants.defaultCity;
+  String cityHint() => baseLocation.city.trim().isEmpty
+      ? AppConstants.defaultCity
+      : baseLocation.city.trim();
 }

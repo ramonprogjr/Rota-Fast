@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/core/utils/phone_utils.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/add_delivery_screen.dart';
-import 'package:rota_pizza/screens/confirm_location_screen.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/core/utils/phone_utils.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/add_delivery_screen.dart';
+import 'package:rota_max/screens/confirm_location_screen.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class DeliveryDetailScreen extends StatelessWidget {
   const DeliveryDetailScreen({super.key, required this.deliveryId});

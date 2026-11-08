@@ -3,13 +3,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/core/utils/shift_timeline.dart';
-import 'package:rota_pizza/models/shift.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/core/utils/shift_timeline.dart';
+import 'package:rota_max/models/shift.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class ShiftReportScreen extends StatelessWidget {
   const ShiftReportScreen({super.key, this.report});
@@ -80,7 +80,7 @@ class _ReportBodyState extends State<_ReportBody> {
       shift: report.shift,
       points: report.points,
       completed: report.completed,
-      originName: state.pizzeria.name,
+      originName: state.baseLocation.name,
       origin: origin,
     );
     final selectedEvent =
@@ -108,7 +108,7 @@ class _ReportBodyState extends State<_ReportBody> {
       children: [
         Text(date, style: Theme.of(context).textTheme.titleLarge),
         Text(
-          '$start – $end · São Bernardo do Campo',
+          '$start – $end · ${state.cityHint()}',
           style: const TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 12),
@@ -117,7 +117,7 @@ class _ReportBodyState extends State<_ReportBody> {
             Expanded(child: _metric('Km GPS', formatKm(report.gpsKm))),
             const SizedBox(width: 10),
             Expanded(
-              child: _metric('Entregas', '${report.deliveries} pizzas'),
+              child: _metric('Entregas', '${report.deliveries}'),
             ),
           ],
         ),
@@ -142,7 +142,11 @@ class _ReportBodyState extends State<_ReportBody> {
               mapController: _mapController,
               options: MapOptions(
                 initialCenter: points.isEmpty
-                    ? (origin ?? const LatLng(-23.6944, -46.5654))
+                    ? (origin ??
+                        const LatLng(
+                          AppConstants.fallbackLat,
+                          AppConstants.fallbackLng,
+                        ))
                     : points[points.length ~/ 2],
                 initialZoom: 13,
                 onMapReady: () => _mapReady = true,

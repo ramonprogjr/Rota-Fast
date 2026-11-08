@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/models/shift.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/models/shift.dart';
 
 abstract class SettingsRepository {
   Future<bool> motorcycleMode();

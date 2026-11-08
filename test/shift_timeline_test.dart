@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:rota_pizza/core/utils/shift_timeline.dart';
-import 'package:rota_pizza/data/demo_shift_seed.dart';
-import 'package:rota_pizza/models/shift.dart';
+import 'package:rota_max/core/utils/shift_timeline.dart';
+import 'fixtures/demo_shift_seed.dart';
+import 'package:rota_max/models/shift.dart';
 
 void main() {
   test('linha do tempo tem saída, 7 paradas e fim', () {

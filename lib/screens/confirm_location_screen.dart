@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class ConfirmLocationScreen extends StatefulWidget {
   const ConfirmLocationScreen({
@@ -29,7 +29,10 @@ class _ConfirmLocationScreenState extends State<ConfirmLocationScreen> {
     super.initState();
     _selected = 0;
     final first = widget.candidates.isEmpty
-        ? const GeoResult(latitude: -23.6944, longitude: -46.5654)
+        ? const GeoResult(
+            latitude: AppConstants.fallbackLat,
+            longitude: AppConstants.fallbackLng,
+          )
         : widget.candidates.first;
     _pin = LatLng(first.latitude, first.longitude);
   }

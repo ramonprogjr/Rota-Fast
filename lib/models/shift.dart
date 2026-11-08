@@ -1,4 +1,4 @@
-import 'package:rota_pizza/models/delivery.dart';
+import 'package:rota_max/models/delivery.dart';
 
 class Shift {
   Shift({

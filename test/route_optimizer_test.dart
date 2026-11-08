@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/models/shift_summary.dart';
-import 'package:rota_pizza/services/route_optimizer.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/models/shift_summary.dart';
+import 'package:rota_max/services/route_optimizer.dart';
 
 Delivery _delivery({
   required int id,

@@ -1,7 +1,7 @@
-class Pizzeria {
-  Pizzeria({
+class BaseLocation {
+  BaseLocation({
     this.id = 1,
-    this.name = 'Estabelecimento',
+    this.name = 'Ponto de saída',
     this.address = '',
     this.city = 'São Bernardo do Campo',
     this.latitude,
@@ -29,7 +29,7 @@ class Pizzeria {
     return '$address, $city';
   }
 
-  Pizzeria copyWith({
+  BaseLocation copyWith({
     int? id,
     String? name,
     String? address,
@@ -38,7 +38,7 @@ class Pizzeria {
     double? longitude,
     bool clearCoordinates = false,
   }) {
-    return Pizzeria(
+    return BaseLocation(
       id: id ?? this.id,
       name: name ?? this.name,
       address: address ?? this.address,
@@ -59,10 +59,10 @@ class Pizzeria {
     };
   }
 
-  factory Pizzeria.fromMap(Map<String, Object?> map) {
-    return Pizzeria(
+  factory BaseLocation.fromMap(Map<String, Object?> map) {
+    return BaseLocation(
       id: (map['id'] as int?) ?? 1,
-      name: (map['name'] as String?) ?? 'Estabelecimento',
+      name: (map['name'] as String?) ?? 'Ponto de saída',
       address: (map['address'] as String?) ?? '',
       city: (map['city'] as String?) ?? 'São Bernardo do Campo',
       latitude: (map['latitude'] as num?)?.toDouble(),

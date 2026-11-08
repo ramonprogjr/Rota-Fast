@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/home_screen.dart';
-import 'package:rota_pizza/screens/splash_screen.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/home_screen.dart';
+import 'package:rota_max/screens/splash_screen.dart';
 
-class RotaPizzaApp extends StatelessWidget {
-  const RotaPizzaApp({
+class RotaMaxApp extends StatelessWidget {
+  const RotaMaxApp({
     super.key,
     required this.state,
     this.showSplash = true,

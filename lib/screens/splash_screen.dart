@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/home_screen.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,10 +38,10 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('RF', style: TextStyle(fontSize: 64, fontWeight: FontWeight.w800, color: AppColors.cream)),
+              Text('RM', style: TextStyle(fontSize: 64, fontWeight: FontWeight.w800, color: AppColors.cream)),
               SizedBox(height: 12),
               Text(
-                'ROTA FOOD',
+                'ROTA MAX',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,

@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/data/repositories/shift_repository.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/models/shift.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/data/repositories/shift_repository.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/models/shift.dart';
 
 class ShiftTracker {
   ShiftTracker(this._repo);
@@ -28,7 +28,7 @@ class ShiftTracker {
         distanceFilter: 15,
         intervalDuration: const Duration(seconds: 15),
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'Rota Food — turno ativo',
+          notificationTitle: 'Rota Max — turno ativo',
           notificationText:
               'Registrando km do dia. Não force o fechamento do app.',
           enableWakeLock: true,

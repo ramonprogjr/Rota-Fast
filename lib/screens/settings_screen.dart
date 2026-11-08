@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/models/pizzeria.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/models/base_location.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,10 +25,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final pizzeria = context.read<AppState>().pizzeria;
-    _name = TextEditingController(text: pizzeria.name);
-    _address = TextEditingController(text: pizzeria.address);
-    _city = TextEditingController(text: pizzeria.city);
+    final baseLocation = context.read<AppState>().baseLocation;
+    _name = TextEditingController(text: baseLocation.name);
+    _address = TextEditingController(text: baseLocation.address);
+    _city = TextEditingController(text: baseLocation.city);
     final vehicle = context.read<AppState>().vehicle;
     _gas = TextEditingController(
       text: vehicle.gasPriceLiter.toStringAsFixed(2).replaceAll('.', ','),
@@ -59,15 +59,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    final pizzeria = state.pizzeria;
+    final baseLocation = state.baseLocation;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Estabelecimento e ajustes')),
+      appBar: AppBar(title: const Text('Ponto de saída e ajustes')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           const Text(
-            'Cadastre o ponto de partida uma vez. A rota começa daqui — pizzaria, restaurante ou dark kitchen.',
+            'Cadastre o ponto de partida uma vez. A rota começa daqui: loja, restaurante, centro de distribuição ou sua casa.',
             style: TextStyle(color: AppColors.muted, fontSize: 16),
           ),
           const SizedBox(height: 16),
@@ -81,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             minLines: 2,
             maxLines: 3,
             decoration: const InputDecoration(
-              labelText: 'Endereço do estabelecimento',
+              labelText: 'Endereço do ponto de saída',
             ),
           ),
           const SizedBox(height: 12),
@@ -90,9 +90,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: const InputDecoration(labelText: 'Cidade'),
           ),
           const SizedBox(height: 8),
-          if (pizzeria.hasCoordinates)
+          if (baseLocation.hasCoordinates)
             Text(
-              'Localizada: ${pizzeria.latitude!.toStringAsFixed(5)}, ${pizzeria.longitude!.toStringAsFixed(5)}',
+              'Localizada: ${baseLocation.latitude!.toStringAsFixed(5)}, ${baseLocation.longitude!.toStringAsFixed(5)}',
               style: const TextStyle(color: AppColors.success),
             )
           else
@@ -106,22 +106,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           const SizedBox(height: 16),
           BigButton(
-            label: state.busy ? 'Salvando...' : 'Salvar estabelecimento',
+            label: state.busy ? 'Salvando...' : 'Salvar ponto de saída',
             icon: Icons.storefront,
             onPressed: state.busy
                 ? null
                 : () {
-                    state.savePizzeria(
-                      Pizzeria(
+                    state.saveBaseLocation(
+                      BaseLocation(
                         name: _name.text.trim().isEmpty
-                            ? 'Estabelecimento'
+                            ? 'Ponto de saída'
                             : _name.text.trim(),
                         address: _address.text.trim(),
                         city: _city.text.trim().isEmpty
                             ? AppConstants.defaultCity
                             : _city.text.trim(),
-                        latitude: pizzeria.latitude,
-                        longitude: pizzeria.longitude,
+                        latitude: baseLocation.latitude,
+                        longitude: baseLocation.longitude,
                       ),
                     );
                   },

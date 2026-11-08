@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/add_delivery_screen.dart';
-import 'package:rota_pizza/screens/confirm_location_screen.dart';
-import 'package:rota_pizza/screens/dashboard_screen.dart';
-import 'package:rota_pizza/screens/delivery_detail_screen.dart';
-import 'package:rota_pizza/screens/history_screen.dart';
-import 'package:rota_pizza/screens/paste_addresses_screen.dart';
-import 'package:rota_pizza/screens/scan_tickets_screen.dart';
-import 'package:rota_pizza/screens/settings_screen.dart';
-import 'package:rota_pizza/screens/shift_report_screen.dart';
-import 'package:rota_pizza/widgets/delivery_card.dart';
-import 'package:rota_pizza/widgets/shift_stats_bar.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/add_delivery_screen.dart';
+import 'package:rota_max/screens/confirm_location_screen.dart';
+import 'package:rota_max/screens/dashboard_screen.dart';
+import 'package:rota_max/screens/delivery_detail_screen.dart';
+import 'package:rota_max/screens/history_screen.dart';
+import 'package:rota_max/screens/paste_addresses_screen.dart';
+import 'package:rota_max/screens/scan_tickets_screen.dart';
+import 'package:rota_max/screens/settings_screen.dart';
+import 'package:rota_max/screens/shift_report_screen.dart';
+import 'package:rota_max/widgets/delivery_card.dart';
+import 'package:rota_max/widgets/shift_stats_bar.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rota Food'),
+        title: const Text('Rota Max'),
         actions: [
           IconButton(
             tooltip: 'Linha do tempo',
@@ -54,7 +54,7 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.bar_chart),
           ),
           IconButton(
-            tooltip: 'Estabelecimento e ajustes',
+            tooltip: 'Ponto de saída e ajustes',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
@@ -82,7 +82,7 @@ class HomeScreen extends StatelessWidget {
               children: [
                 _TimelineCard(state: state, onTap: () => _openReport(context)),
                 const SizedBox(height: 12),
-                _PizzeriaBanner(state: state),
+                _BaseLocationBanner(state: state),
                 const SizedBox(height: 12),
                 if (state.oilWarning)
                   const Padding(
@@ -148,7 +148,7 @@ class HomeScreen extends StatelessWidget {
                     );
                   },
                   icon: const Icon(Icons.photo_camera),
-                  label: const Text('Fotografar comandas'),
+                  label: const Text('Fotografar etiquetas'),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
@@ -177,7 +177,7 @@ class HomeScreen extends StatelessWidget {
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      'Toque em Adicionar, fotografe as comandas ou cole os endereços.',
+                      'Toque em Adicionar, fotografe as etiquetas ou cole os endereços.',
                       style: TextStyle(color: AppColors.muted, fontSize: 16),
                     ),
                   ),
@@ -335,15 +335,15 @@ class _TimelineCard extends StatelessWidget {
   }
 }
 
-class _PizzeriaBanner extends StatelessWidget {
-  const _PizzeriaBanner({required this.state});
+class _BaseLocationBanner extends StatelessWidget {
+  const _BaseLocationBanner({required this.state});
 
   final AppState state;
 
   @override
   Widget build(BuildContext context) {
-    final pizzeria = state.pizzeria;
-    final configured = pizzeria.isConfigured;
+    final baseLocation = state.baseLocation;
+    final configured = baseLocation.isConfigured;
     return Material(
       color: configured ? AppColors.surface : const Color(0xFF3A2218),
       borderRadius: BorderRadius.circular(16),
@@ -365,7 +365,7 @@ class _PizzeriaBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      pizzeria.name,
+                      baseLocation.name,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -373,7 +373,7 @@ class _PizzeriaBanner extends StatelessWidget {
                     ),
                     Text(
                       configured
-                          ? pizzeria.fullAddress
+                          ? baseLocation.fullAddress
                           : 'Toque para cadastrar o ponto de partida',
                       style: const TextStyle(color: AppColors.muted),
                     ),

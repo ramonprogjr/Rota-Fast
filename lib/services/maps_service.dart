@@ -1,5 +1,5 @@
 import 'package:url_launcher/url_launcher.dart';
-import 'package:rota_pizza/core/utils/phone_utils.dart';
+import 'package:rota_max/core/utils/phone_utils.dart';
 
 class MapsService {
   const MapsService();

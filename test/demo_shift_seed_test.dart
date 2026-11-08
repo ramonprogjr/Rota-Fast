@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/data/demo_shift_seed.dart';
-import 'package:rota_pizza/data/repositories/memory_delivery_repository.dart';
-import 'package:rota_pizza/data/repositories/pizzeria_repository.dart';
-import 'package:rota_pizza/data/repositories/settings_repository.dart';
-import 'package:rota_pizza/data/repositories/shift_repository.dart';
-import 'package:rota_pizza/models/pizzeria.dart';
-import 'package:rota_pizza/models/shift.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/services/geocoding_service.dart';
+import 'fixtures/demo_shift_seed.dart';
+import 'package:rota_max/data/repositories/memory_delivery_repository.dart';
+import 'package:rota_max/data/repositories/base_location_repository.dart';
+import 'package:rota_max/data/repositories/settings_repository.dart';
+import 'package:rota_max/data/repositories/shift_repository.dart';
+import 'package:rota_max/models/base_location.dart';
+import 'package:rota_max/models/shift.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/services/geocoding_service.dart';
 
 void main() {
-  test('demo do domingo tem 7 pizzas e 62,1 km', () {
+  test('demo do domingo tem 7 entregas e 62,1 km', () {
     final items = DemoShiftData.deliveries();
     expect(items, hasLength(7));
     expect(
@@ -34,8 +34,8 @@ void main() {
 
     final state = AppState(
       deliveryRepository: MemoryDeliveryRepository(DemoShiftData.deliveries()),
-      pizzeriaRepository: MemoryPizzeriaRepository(
-        Pizzeria(
+      baseLocationRepository: MemoryBaseLocationRepository(
+        BaseLocation(
           name: 'Forno da Vila',
           address: 'Rua Marechal Deodoro, 980',
           latitude: DemoShiftData.originLat,

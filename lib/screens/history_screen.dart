@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/delivery_detail_screen.dart';
-import 'package:rota_pizza/widgets/delivery_card.dart';
-import 'package:rota_pizza/widgets/shift_stats_bar.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/delivery_detail_screen.dart';
+import 'package:rota_max/widgets/delivery_card.dart';
+import 'package:rota_max/widgets/shift_stats_bar.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});

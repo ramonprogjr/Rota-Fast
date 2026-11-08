@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/data/repositories/settings_repository.dart';
-import 'package:rota_pizza/models/geo_result.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/data/repositories/settings_repository.dart';
+import 'package:rota_max/models/geo_result.dart';
 
 class GeocodingException implements Exception {
   GeocodingException(this.message);
@@ -22,6 +22,10 @@ class GeocodingService {
   final GeocodeCacheRepository _cache;
   final http.Client _client;
   DateTime? _lastRequestAt;
+
+  /// Cidade usada quando a busca não traz cidade. O AppState atualiza com a
+  /// cidade do ponto de saída.
+  String fallbackCity = AppConstants.defaultCity;
 
   Future<GeoResult?> geocode(String rawQuery) async {
     final results = await search(rawQuery);
@@ -142,7 +146,7 @@ class GeocodingService {
     final parts = <String>[
       if (rawQuery.trim().isNotEmpty) rawQuery.trim(),
       if ((neighborhood ?? '').trim().isNotEmpty) neighborhood!.trim(),
-      if ((city ?? '').trim().isNotEmpty) city!.trim() else AppConstants.defaultCity,
+      if ((city ?? '').trim().isNotEmpty) city!.trim() else fallbackCity,
     ];
     if (rawQuery.trim().isEmpty && (street ?? '').trim().isNotEmpty) {
       parts.insert(

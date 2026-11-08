@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:rota_pizza/models/shift.dart';
+import 'package:rota_max/models/shift.dart';
 
 abstract class ShiftRepository {
   Future<Shift?> openShift();

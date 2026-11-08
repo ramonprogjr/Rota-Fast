@@ -1,7 +1,6 @@
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:rota_pizza/data/demo_shift_seed.dart';
 
 class AppDatabase {
   AppDatabase._();
@@ -21,7 +20,7 @@ class AppDatabase {
 
   Future<Database> _open() async {
     final dir = await getApplicationDocumentsDirectory();
-    final path = p.join(dir.path, 'rota_pizza.db');
+    final path = p.join(dir.path, 'rota_max.db');
     final db = await openDatabase(
       path,
       version: 3,
@@ -34,7 +33,7 @@ class AppDatabase {
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE pizzeria (
+      CREATE TABLE base_location (
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         address TEXT NOT NULL,
@@ -81,9 +80,9 @@ class AppDatabase {
       )
     ''');
     await _createShiftTables(db);
-    await db.insert('pizzeria', {
+    await db.insert('base_location', {
       'id': 1,
-      'name': 'Estabelecimento',
+      'name': 'Ponto de saída',
       'address': '',
       'city': 'São Bernardo do Campo',
       'latitude': null,
@@ -94,7 +93,6 @@ class AppDatabase {
       'value': '1',
     });
     await _seedVehicleSettings(db);
-    await DemoShiftSeeder.seedIfNeeded(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -104,9 +102,6 @@ class AppDatabase {
       );
       await _createShiftTables(db);
       await _seedVehicleSettings(db);
-    }
-    if (oldVersion < 3) {
-      await DemoShiftSeeder.seedIfNeeded(db);
     }
   }
 

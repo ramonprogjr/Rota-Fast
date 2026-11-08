@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
 
 class BigButton extends StatelessWidget {
   const BigButton({

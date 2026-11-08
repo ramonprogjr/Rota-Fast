@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/core/utils/address_parser.dart';
+import 'package:rota_max/core/utils/address_parser.dart';
 
 void main() {
   test('separa nome e endereço com traço', () {

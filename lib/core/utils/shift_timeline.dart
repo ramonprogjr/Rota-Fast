@@ -1,7 +1,7 @@
 import 'package:latlong2/latlong.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/shift.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/shift.dart';
 
 enum TimelineKind { start, stop, end }
 

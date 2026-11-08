@@ -90,25 +90,63 @@ alter table public.shifts enable row level security;
 alter table public.deliveries enable row level security;
 alter table public.track_points enable row level security;
 
-create policy "Empresa pode ver seus dados" on public.companies
-for all using (true) with check (true);
+-- Empresa do usuário logado. security definer para não cair em recursão
+-- na própria policy de profiles.
+create or replace function public.current_company_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select company_id from public.profiles where id = auth.uid()
+$$;
 
-create policy "Usuários podem ver seu perfil" on public.profiles
-for all using (auth.uid() = id) with check (auth.uid() = id);
+-- Empresas: o usuário só lê a própria. Criar/alterar empresa é tarefa
+-- administrativa (service role, fora do app).
+create policy "Ler a própria empresa" on public.companies
+for select using (id = public.current_company_id());
 
-create policy "Usuários da empresa podem ver entregadores" on public.drivers
-for all using (true) with check (true);
+-- Perfis: lê o próprio e os colegas da mesma empresa.
+create policy "Ler perfis da empresa" on public.profiles
+for select using (id = auth.uid() or company_id = public.current_company_id());
 
-create policy "Usuários da empresa podem ver turnos" on public.shifts
-for all using (true) with check (true);
+-- O usuário só pode editar o próprio nome: role e company_id ficam fora
+-- do alcance do app (evita escalar para admin ou trocar de empresa).
+create policy "Editar o próprio perfil" on public.profiles
+for update using (id = auth.uid()) with check (id = auth.uid());
+revoke update on public.profiles from authenticated;
+grant update (full_name) on public.profiles to authenticated;
 
-create policy "Usuários da empresa podem ver entregas" on public.deliveries
-for all using (true) with check (true);
+create policy "Entregadores da empresa" on public.drivers
+for all using (company_id = public.current_company_id())
+with check (company_id = public.current_company_id());
 
-create policy "Usuários da empresa podem ver pontos" on public.track_points
-for all using (true) with check (true);
+create policy "Turnos da empresa" on public.shifts
+for all using (company_id = public.current_company_id())
+with check (company_id = public.current_company_id());
 
-create or replace view public.dashboard_summary as
+create policy "Entregas da empresa" on public.deliveries
+for all using (company_id = public.current_company_id())
+with check (company_id = public.current_company_id());
+
+create policy "Pontos de turnos da empresa" on public.track_points
+for all using (
+  exists (
+    select 1 from public.shifts s
+    where s.id = shift_id and s.company_id = public.current_company_id()
+  )
+)
+with check (
+  exists (
+    select 1 from public.shifts s
+    where s.id = shift_id and s.company_id = public.current_company_id()
+  )
+);
+
+-- security_invoker: a view respeita o RLS de quem consulta.
+create or replace view public.dashboard_summary
+with (security_invoker = true) as
 select
   d.company_id,
   date_trunc('day', d.created_at)::date as day,

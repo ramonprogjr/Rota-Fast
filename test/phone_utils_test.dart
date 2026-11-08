@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rota_pizza/core/utils/phone_utils.dart';
+import 'package:rota_max/core/utils/phone_utils.dart';
 
 void main() {
   test('adiciona DDI 55 em celular com DDD', () {

@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:rota_pizza/data/repositories/delivery_repository.dart';
-import 'package:rota_pizza/models/delivery.dart';
+import 'package:rota_max/data/repositories/delivery_repository.dart';
+import 'package:rota_max/models/delivery.dart';
 
 class SqliteDeliveryRepository implements DeliveryRepository {
   SqliteDeliveryRepository(this._db);

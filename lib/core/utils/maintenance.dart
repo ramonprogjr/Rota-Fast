@@ -1,4 +1,4 @@
-import 'package:rota_pizza/core/constants/app_constants.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
 
 class MaintenanceCalc {
   static double kmSinceOil({
@@ -53,7 +53,7 @@ class MaintenanceCalc {
     final km = gpsKm.toStringAsFixed(1).replaceAll('.', ',');
     final oil = oilRemaining.toStringAsFixed(0);
     return '''
-Rota Food — relatório $dateLabel
+Rota Max — relatório $dateLabel
 
 Entregas: $deliveries
 Ganhos: ${money(earnings)}

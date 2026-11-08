@@ -1,5 +1,5 @@
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/utils/phone_utils.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/utils/phone_utils.dart';
 
 class ParsedDelivery {
   ParsedDelivery({
@@ -158,7 +158,8 @@ class AddressParser {
         lower == 'endereços' ||
         lower == 'enderecos' ||
         lower.startsWith('rota pizza') ||
-        lower.startsWith('rota food');
+        lower.startsWith('rota food') ||
+        lower.startsWith('rota max');
   }
 
   static (String?, String) _splitNameAndAddress(String line) {

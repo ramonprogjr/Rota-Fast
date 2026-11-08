@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/models/shift_summary.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/models/shift_summary.dart';
 
 class ShiftStatsBar extends StatelessWidget {
   const ShiftStatsBar({super.key, required this.summary, this.earningsLabel});

@@ -1,5 +1,5 @@
 import 'package:geolocator/geolocator.dart';
-import 'package:rota_pizza/models/geo_result.dart';
+import 'package:rota_max/models/geo_result.dart';
 
 class LocationService {
   const LocationService();

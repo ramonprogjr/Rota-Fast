@@ -1,4 +1,4 @@
-package com.rotapizza.rota_pizza
+package com.rotamax.app
 
 import io.flutter.embedding.android.FlutterActivity
 

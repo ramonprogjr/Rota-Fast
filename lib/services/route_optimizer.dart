@@ -1,8 +1,8 @@
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/utils/haversine.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/models/shift_summary.dart';
+import 'package:rota_max/core/constants/app_constants.dart';
+import 'package:rota_max/core/utils/haversine.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/models/shift_summary.dart';
 
 class OptimizedRoute {
   const OptimizedRoute({

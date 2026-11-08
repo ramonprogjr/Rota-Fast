@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rota_pizza/core/constants/app_constants.dart';
-import 'package:rota_pizza/core/theme/app_theme.dart';
-import 'package:rota_pizza/models/delivery.dart';
-import 'package:rota_pizza/models/geo_result.dart';
-import 'package:rota_pizza/providers/app_state.dart';
-import 'package:rota_pizza/screens/confirm_location_screen.dart';
-import 'package:rota_pizza/screens/scan_tickets_screen.dart';
-import 'package:rota_pizza/widgets/big_button.dart';
+import 'package:rota_max/core/theme/app_theme.dart';
+import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/geo_result.dart';
+import 'package:rota_max/providers/app_state.dart';
+import 'package:rota_max/screens/confirm_location_screen.dart';
+import 'package:rota_max/screens/scan_tickets_screen.dart';
+import 'package:rota_max/widgets/big_button.dart';
 
 class AddDeliveryScreen extends StatefulWidget {
   const AddDeliveryScreen({super.key, this.existing});
@@ -50,7 +49,7 @@ class _AddDeliveryScreenState extends State<AddDeliveryScreen> {
     _complement = TextEditingController(text: current?.complement ?? '');
     _neighborhood = TextEditingController(text: current?.neighborhood ?? '');
     _city = TextEditingController(
-      text: current?.city ?? AppConstants.defaultCity,
+      text: current?.city ?? context.read<AppState>().cityHint(),
     );
     _value = TextEditingController(
       text: current?.value == null
@@ -205,7 +204,7 @@ class _AddDeliveryScreenState extends State<AddDeliveryScreen> {
                 );
               },
               icon: const Icon(Icons.photo_camera),
-              label: const Text('Fotografar comandas'),
+              label: const Text('Fotografar etiquetas'),
             ),
             if (_geoHint != null) ...[
               const SizedBox(height: 8),
@@ -302,7 +301,7 @@ class _AddDeliveryScreenState extends State<AddDeliveryScreen> {
               ? null
               : _neighborhood.text.trim(),
           city: _city.text.trim().isEmpty
-              ? AppConstants.defaultCity
+              ? context.read<AppState>().cityHint()
               : _city.text.trim(),
           value: double.tryParse(valueText),
           priority: _priority,
