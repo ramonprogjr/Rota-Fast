@@ -80,9 +80,14 @@ class ShiftTracker {
     }
   }
 
-  GeoPoint? lastLocation() {
+  /// Último ponto gravado no turno. Com [maxAge], ignora pontos antigos.
+  GeoPoint? lastLocation({Duration? maxAge}) {
     final last = _lastPoint;
     if (last == null) {
+      return null;
+    }
+    if (maxAge != null &&
+        DateTime.now().difference(last.recordedAt) > maxAge) {
       return null;
     }
     return GeoPoint(last.latitude, last.longitude);

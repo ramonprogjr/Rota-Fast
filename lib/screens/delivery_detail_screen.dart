@@ -123,7 +123,7 @@ class DeliveryDetailScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
-          if (current.isPending) ...[
+          if (current.isOpen) ...[
             BigButton(
               label: 'Navegar',
               icon: Icons.navigation,

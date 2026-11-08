@@ -9,6 +9,8 @@ import 'package:rota_max/data/repositories/base_location_repository.dart';
 import 'package:rota_max/data/repositories/settings_repository.dart';
 import 'package:rota_max/data/repositories/shift_repository.dart';
 import 'package:rota_max/models/delivery.dart';
+import 'package:rota_max/models/delivery_event.dart';
+import 'package:rota_max/models/delivery_route.dart';
 import 'package:rota_max/models/geo_result.dart';
 import 'package:rota_max/models/base_location.dart';
 import 'package:rota_max/models/shift.dart';
@@ -73,11 +75,14 @@ class AppState extends ChangeNotifier {
   Shift? lastEndedShift;
   VehicleSettings vehicle = const VehicleSettings();
 
+  DeliveryRoute? activeRoute;
+
+  /// Paradas ainda na rota (pendente, a caminho ou pulada), na ordem da rota.
   List<Delivery> get pending {
-    final list = items.where((item) => item.isPending).toList();
+    final list = items.where((item) => item.isOpen).toList();
     list.sort((a, b) {
-      final ao = a.routeOrder ?? 9999;
-      final bo = b.routeOrder ?? 9999;
+      final ao = a.routeOrder ?? 1 << 30;
+      final bo = b.routeOrder ?? 1 << 30;
       final byOrder = ao.compareTo(bo);
       if (byOrder != 0) {
         return byOrder;
@@ -87,10 +92,30 @@ class AppState extends ChangeNotifier {
     return list;
   }
 
+  /// Próxima parada: a que está a caminho ou, se nenhuma, a primeira pendente.
+  Delivery? get nextStop {
+    final list = pending;
+    for (final item in list) {
+      if (item.status == DeliveryStatus.inProgress) {
+        return item;
+      }
+    }
+    for (final item in list) {
+      if (item.status == DeliveryStatus.pending) {
+        return item;
+      }
+    }
+    return list.isEmpty ? null : list.first;
+  }
+
+  /// Entregas que não deram certo e esperam nova tentativa.
+  List<Delivery> get problems => items.where((item) => item.isFailed).toList()
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
   List<Delivery> get doneToday {
     final now = DateTime.now();
     return items.where((item) {
-      if (item.isPending) {
+      if (!item.isDelivered) {
         return false;
       }
       final at = item.deliveredAt ?? item.createdAt;
@@ -124,6 +149,7 @@ class AppState extends ChangeNotifier {
     loading = true;
     notifyListeners();
     items = await _deliveries.getAll();
+    activeRoute = await _deliveries.activeRoute();
     baseLocation = await _baseLocations.get();
     _geocoding.fallbackCity = cityHint();
     motorcycleMode = await _settings.motorcycleMode();
@@ -139,6 +165,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> refresh() async {
     items = await _deliveries.getAll();
+    activeRoute = await _deliveries.activeRoute();
     baseLocation = await _baseLocations.get();
     _geocoding.fallbackCity = cityHint();
     motorcycleMode = await _settings.motorcycleMode();
@@ -241,31 +268,96 @@ class AppState extends ChangeNotifier {
     await refresh();
   }
 
-  Future<void> markDelivered(Delivery delivery) async {
-    final done = delivery.copyWith(
-      status: DeliveryStatus.done,
-      deliveredAt: DateTime.now(),
-    );
-    await _deliveries.update(done);
-    await refresh();
-    final origin = done.hasCoordinates
-        ? GeoPoint(done.latitude!, done.longitude!)
+  /// Troca de status com tratamento de erro para a interface.
+  Future<bool> _transition(
+    Delivery delivery,
+    DeliveryStatus to, {
+    FailureReason? reason,
+    String? note,
+  }) async {
+    if (delivery.id == null) {
+      return false;
+    }
+    try {
+      // Posição do rastreio do turno, sem nova leitura de GPS (não atrasa
+      // o toque do motorista). Sem turno ativo, o evento fica sem posição.
+      final here = to == DeliveryStatus.delivered || to == DeliveryStatus.failed
+          ? _tracker.lastLocation(maxAge: const Duration(minutes: 5))
+          : null;
+      await _deliveries.transition(
+        delivery.id!,
+        to,
+        reason: reason,
+        note: note,
+        latitude: here?.latitude,
+        longitude: here?.longitude,
+      );
+      return true;
+    } on InvalidTransition catch (error) {
+      message = error.toString();
+      return false;
+    } on ArgumentError catch (error) {
+      message = '${error.message}';
+      return false;
+    } finally {
+      await refresh();
+    }
+  }
+
+  /// Reorganiza o que sobrou a partir do ponto onde o motorista está.
+  Future<void> _reoptimizeFrom(Delivery delivery) async {
+    final origin = delivery.hasCoordinates
+        ? GeoPoint(delivery.latitude!, delivery.longitude!)
         : originPoint;
     if (origin != null && pending.isNotEmpty) {
       await organizeRoute(originOverride: origin, silent: true);
     }
   }
 
-  Future<void> reopen(Delivery delivery) async {
-    await _deliveries.update(
-      delivery.copyWith(
-        status: DeliveryStatus.pending,
-        clearDeliveredAt: true,
-        clearRouteOrder: true,
-      ),
-    );
-    await refresh();
+  Future<void> markDelivered(Delivery delivery) async {
+    if (await _transition(delivery, DeliveryStatus.delivered)) {
+      await _reoptimizeFrom(delivery);
+    }
   }
+
+  Future<void> markFailed(
+    Delivery delivery,
+    FailureReason reason, {
+    String? note,
+  }) async {
+    if (await _transition(
+      delivery,
+      DeliveryStatus.failed,
+      reason: reason,
+      note: note,
+    )) {
+      await _reoptimizeFrom(delivery);
+    }
+  }
+
+  /// Pula a parada: ela vai para o fim da rota.
+  Future<void> skip(Delivery delivery) =>
+      _transition(delivery, DeliveryStatus.skipped);
+
+  /// Falhou ou pulou: volta para a rota como pendente.
+  Future<void> retry(Delivery delivery) =>
+      _transition(delivery, DeliveryStatus.pending);
+
+  /// Entregue por engano: volta a pendente (fica registrado no histórico).
+  Future<void> reopen(Delivery delivery) =>
+      _transition(delivery, DeliveryStatus.pending, note: 'Reaberta');
+
+  /// Motorista saiu para esta parada. Marca a rota como iniciada.
+  Future<void> startStop(Delivery delivery) async {
+    if (delivery.status == DeliveryStatus.inProgress) {
+      return;
+    }
+    await _deliveries.startActiveRoute();
+    await _transition(delivery, DeliveryStatus.inProgress);
+  }
+
+  Future<List<DeliveryEvent>> eventsFor(Delivery delivery) async =>
+      delivery.id == null ? [] : _deliveries.eventsFor(delivery.id!);
 
   Future<bool> organizeRoute({
     GeoPoint? originOverride,
@@ -299,7 +391,13 @@ class AppState extends ChangeNotifier {
         origin: origin,
         pending: currentPending,
       );
-      await _deliveries.replaceRouteOrder(route.ordered);
+      await _deliveries.saveRouteOrder(
+        route.ordered,
+        originLat: origin.latitude,
+        originLng: origin.longitude,
+        estimatedKm: route.totalKm,
+        estimatedMinutes: route.estimatedDuration.inMinutes,
+      );
       await refresh();
       if (!silent) {
         final km = formatKm(route.totalKm);
@@ -534,7 +632,7 @@ class AppState extends ChangeNotifier {
     final start = shift.startedAt;
     final end = shift.endedAt ?? DateTime.now().add(const Duration(minutes: 1));
     return items.where((item) {
-      if (item.isPending) {
+      if (!item.isDelivered) {
         return false;
       }
       final at = item.deliveredAt ?? item.createdAt;
@@ -573,7 +671,7 @@ class AppState extends ChangeNotifier {
     return List.generate(7, (index) {
       final day = start.add(Duration(days: index));
       final ofDay = items.where((item) {
-        if (item.isPending) {
+        if (!item.isDelivered) {
           return false;
         }
         final at = item.deliveredAt ?? item.createdAt;
@@ -593,7 +691,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, List<Delivery>> historyByDay() {
-    final done = items.where((item) => !item.isPending).toList()
+    final done = items.where((item) => item.isDelivered || item.isFailed).toList()
       ..sort((a, b) => (b.deliveredAt ?? b.createdAt)
           .compareTo(a.deliveredAt ?? a.createdAt));
     final map = <String, List<Delivery>>{};

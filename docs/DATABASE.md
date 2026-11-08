@@ -46,14 +46,26 @@ Ordem das paradas de uma rota. `route_id` → routes (CASCADE), `delivery_id` �
 ### delivery_events
 Histórico de cada troca de status. `delivery_id` → deliveries (CASCADE), `from_status`, `to_status`, `reason`, `note`, `latitude`, `longitude`, `created_at`.
 
+### route_plans
+Economia de cada "Organizar rota" feito pelo motorista. `route_id` → routes (CASCADE), `stops`, `baseline_km`/`baseline_minutes` (paradas na ordem em que foram cadastradas), `optimized_km`/`optimized_minutes`. O relatório usa, por rota, o plano com mais paradas, para não contar a mesma rota duas vezes.
+
+### vehicles
+Veículos do motorista. Só um com `is_active = 1` (índice único parcial).
+`name`, `type` (`motorcycle`/`car`/`utility`/`van`/`truck`), `plate`, `fuel_type` (`gasoline`/`ethanol`/`flex`/`diesel`), `km_per_liter`, `fuel_price`, `avg_speed_kmh` (usada no ETA), `odometer_km`, `oil_interval_km`, `last_oil_change_km`, `is_active`, `created_at`.
+
+### oil_changes
+Histórico de trocas de óleo. `vehicle_id` → vehicles (CASCADE), `odometer_km`, `changed_at`, `note`.
+
 ### Demais tabelas
-- `base_location` — ponto de saída (uma linha, id = 1): nome, endereço, cidade, lat/lng.
-- `settings` — chave/valor (preço da gasolina, km/l, odômetro, troca de óleo, app de navegação).
-- `geocode_cache` — consulta normalizada → coordenada confirmada.
-- `shifts` — turnos de GPS. `track_points` → shifts (CASCADE).
+- `base_location`: ponto de saída. Uma linha, id = 1, com nome, endereço, cidade e lat/lng.
+- `settings`: chave/valor, por exemplo o app de navegação preferido.
+- `geocode_cache`: consulta normalizada → coordenada confirmada.
+- `shifts`: turnos de GPS. `vehicle_id` → vehicles (SET NULL). `track_points` → shifts (CASCADE).
 
 ### Índices
-`deliveries(status, created_at)`, `route_stops(route_id, position)`, `delivery_events(delivery_id, created_at)`, `track_points(shift_id)`.
+`deliveries(status, created_at)`, `route_stops(route_id, position)`, `route_stops(delivery_id)`, `delivery_events(delivery_id, created_at)`, `track_points(shift_id)`, `routes(status)`, `route_plans(route_id)`, `oil_changes(vehicle_id, changed_at)` e o único parcial `vehicles(is_active) WHERE is_active = 1`.
+
+> Enquanto a v1 não for publicada, o schema fica todo na migration 1. Depois da primeira publicação, qualquer mudança vira migration nova.
 
 ## Máquina de estados (PRD §13.1)
 

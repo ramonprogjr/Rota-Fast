@@ -103,7 +103,7 @@ class DeliveryCard extends StatelessWidget {
                   ],
                 ],
               ),
-              if (delivery.isPending &&
+              if (delivery.isOpen &&
                   (onNavigate != null || onDelivered != null)) ...[
                 const SizedBox(height: 12),
                 Row(
@@ -147,11 +147,11 @@ class DeliveryCard extends StatelessWidget {
   }
 
   Widget _badge() {
-    final label = index != null ? '$index' : (delivery.isPending ? '•' : '✓');
+    final label = index != null ? '$index' : (delivery.isOpen ? '•' : '✓');
     return CircleAvatar(
       radius: 18,
       backgroundColor:
-          delivery.isPending ? AppColors.accent : AppColors.success,
+          delivery.isOpen ? AppColors.accent : AppColors.success,
       child: Text(
         label,
         style: const TextStyle(

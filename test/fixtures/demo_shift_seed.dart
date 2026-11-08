@@ -139,7 +139,7 @@ class DemoShiftData {
       latitude: lat,
       longitude: lng,
       value: value,
-      status: DeliveryStatus.done,
+      status: DeliveryStatus.delivered,
       locationConfirmed: true,
       createdAt: delivered.subtract(const Duration(minutes: 25)),
       deliveredAt: delivered,

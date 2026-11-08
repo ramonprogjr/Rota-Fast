@@ -89,8 +89,8 @@ class RouteOptimizer {
     required GeoPoint? origin,
     required List<Delivery> all,
   }) {
-    final pending = all.where((item) => item.isPending).toList();
-    final done = all.where((item) => !item.isPending).toList();
+    final pending = all.where((item) => item.isOpen).toList();
+    final done = all.where((item) => item.isDelivered).toList();
     final today = DateTime.now();
     final doneToday = done.where((item) {
       final at = item.deliveredAt ?? item.createdAt;
