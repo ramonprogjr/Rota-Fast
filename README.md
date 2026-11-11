@@ -1,10 +1,10 @@
-# Rota Food
+# Rota Max
 
 Planejador de rotas para entregadores de comida (pizzaria, restaurante, dark kitchen).
 
 Versão 1.1 — Android, gratuito, sem anúncios e sem assinatura.
 
-O Rota Food organiza várias entregas do turno. Você confirma o ponto no mapa; o **Navegar** abre o Google Maps com o **texto do endereço**. Dá para fotografar comandas (OCR no celular), iniciar o turno para registrar km e ver o relatório do dia (gasolina e óleo a cada 1000 km).
+O Rota Max organiza várias entregas do turno. Você confirma o ponto no mapa; o **Navegar** abre o Google Maps com o **texto do endereço**. Dá para fotografar comandas (OCR no celular), iniciar o turno para registrar km e ver o relatório do dia (gasolina e óleo a cada 1000 km).
 
 ## O que o app faz
 
